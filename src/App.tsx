@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, Menu, X, User, LogOut, Clock, BarChart3, DollarSign, Facebook, Twitter, Linkedin, Instagram, ArrowRight, Sparkles, Users, Award, TrendingUp, Video, Trophy, Search, Filter, Tag, Calendar, Share2, Check, ArrowLeft, PlayCircle, Lock, CheckCircle, Mail, AlertCircle, Settings, Shield } from 'lucide-react';
+import { BookOpen, Menu, X, User, LogOut, Clock, BarChart3, Facebook, Twitter, Linkedin, Instagram, ArrowRight, Sparkles, Video, Trophy, Search, Filter, Tag, Calendar, Share2, Check, ArrowLeft, PlayCircle, Lock, CheckCircle, Mail, AlertCircle, Settings, Shield } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { Session, User as AuthUser } from '@supabase/supabase-js';
 import { ImageUploader } from './components/ImageUploader';
@@ -197,7 +197,6 @@ function Footer({ onNavigate }: { onNavigate: (p: PageType) => void }) {
                   </button>
                 </li>
               ))}
-              <li><a href="#" className="text-sm hover:text-blue-400 transition-colors">Стать преподавателем</a></li>
             </ul>
           </div>
           <div>
@@ -266,18 +265,43 @@ function HomePage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }
         </div>
       </section>
 
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[{ icon: Users, count: '50,000+', label: 'Активных учащихся' }, { icon: BookOpen, count: '500+', label: 'Экспертных курсов' }, { icon: Award, count: '98%', label: 'Уровень удовлетворённости' }].map((stat, i) => (
-              <div key={i} className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-                  <stat.icon className="h-8 w-8 text-blue-600" />
-                </div>
-                <h3 className="text-4xl font-bold text-gray-900 mb-2">{stat.count}</h3>
-                <p className="text-gray-600">{stat.label}</p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">О нашей платформе</h2>
+              <p className="text-lg text-gray-600 mb-6 leading-relaxed">
+                Мы создаем современное образовательное пространство, где каждый может найти курсы для развития своих навыков и достижения целей.
+                Наша миссия - сделать качественное образование доступным для всех.
+              </p>
+              <p className="text-gray-600 mb-6">
+                Присоединяйтесь к сообществу учащихся, которые уже трансформируют свою карьеру благодаря нашим курсам.
+                Получите доступ к экспертным знаниям, практическим навыкам и поддержке профессионального сообщества.
+              </p>
+              <ul className="space-y-3">
+                {['Обучение в удобном темпе', 'Сертификаты о прохождении', 'Поддержка экспертов', 'Практические проекты'].map((item, i) => (
+                  <li key={i} className="flex items-center space-x-3">
+                    <div className="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Check className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <span className="text-gray-700">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="relative">
+              <div className="aspect-square rounded-2xl overflow-hidden shadow-2xl">
+                <img
+                  src="https://images.pexels.com/photos/3184398/pexels-photo-3184398.jpeg?auto=compress&cs=tinysrgb&w=800"
+                  alt="О платформе"
+                  className="w-full h-full object-cover"
+                />
               </div>
-            ))}
+              <div className="absolute -bottom-6 -left-6 bg-blue-600 text-white p-6 rounded-xl shadow-xl max-w-xs">
+                <p className="text-3xl font-bold mb-1">Начните сегодня</p>
+                <p className="text-blue-100">И измените свое будущее</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -410,7 +434,7 @@ function CourseCard({ course, onClick }: { course: any; onClick: () => void }) {
             </div>
           </div>
           <div className="flex items-center space-x-1 text-blue-600 font-bold">
-            {course.price === 0 ? <span>Бесплатно</span> : <><DollarSign className="h-4 w-4" /><span>{course.price}</span></>}
+            {course.price === 0 ? <span>Бесплатно</span> : <span>{course.price} ₽</span>}
           </div>
         </div>
       </div>
@@ -704,18 +728,6 @@ function CourseDetailPage({ course, onNavigate, user }: { course: any; onNavigat
                   <p className="text-sm text-gray-600">Эксперт-преподаватель</p>
                 </div>
               </div>
-            </div>
-
-            <div className="bg-blue-50 rounded-xl p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Чему вы научитесь</h3>
-              <ul className="space-y-3">
-                {['Освоите ключевые концепции и техники', 'Создадите реальные проекты', 'Получите пожизненный доступ к материалам', 'Заработаете сертификат о завершении'].map((item, i) => (
-                  <li key={i} className="flex items-start space-x-2">
-                    <CheckCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <span className="text-sm text-gray-700">{item}</span>
-                  </li>
-                ))}
-              </ul>
             </div>
           </div>
         </div>

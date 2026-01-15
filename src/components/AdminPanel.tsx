@@ -664,7 +664,7 @@ function UsersManagement() {
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{user.id}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{user.email || 'Не указан'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                     user.role === 'admin'
