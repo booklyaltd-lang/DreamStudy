@@ -1,19 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { User as AuthUser } from '@supabase/supabase-js';
-import {
-  Users,
-  BookOpen,
-  FileText,
-  Settings,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  ArrowLeft,
-  Shield,
-  AlertCircle
-} from 'lucide-react';
+import { Users, BookOpen, FileText, Settings, Plus, CreditCard as Edit, Trash2, Eye, ArrowLeft, Shield, AlertCircle } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
 
 const supabase = createClient(
