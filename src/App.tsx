@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, Menu, X, User, LogOut, Clock, BarChart3, DollarSign, Facebook, Twitter, Linkedin, Instagram, ArrowRight, Sparkles, Users, Award, TrendingUp, Video, Trophy, Search, Filter, Tag, Calendar, Share2, Check, ArrowLeft, PlayCircle, Lock, CheckCircle, Mail, AlertCircle, Settings } from 'lucide-react';
+import { BookOpen, Menu, X, User, LogOut, Clock, BarChart3, DollarSign, Facebook, Twitter, Linkedin, Instagram, ArrowRight, Sparkles, Users, Award, TrendingUp, Video, Trophy, Search, Filter, Tag, Calendar, Share2, Check, ArrowLeft, PlayCircle, Lock, CheckCircle, Mail, AlertCircle, Settings, Shield } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { Session, User as AuthUser } from '@supabase/supabase-js';
 import { ImageUploader } from './components/ImageUploader';
+import { AdminPanel } from './components/AdminPanel';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-type PageType = 'home' | 'courses' | 'course' | 'blog' | 'blogpost' | 'pricing' | 'dashboard' | 'profile' | 'signin' | 'signup';
+type PageType = 'home' | 'courses' | 'course' | 'blog' | 'blogpost' | 'pricing' | 'dashboard' | 'profile' | 'admin' | 'admin-setup' | 'signin' | 'signup';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
@@ -62,6 +63,10 @@ function App() {
         return <DashboardPage onNavigate={handleNavigate} user={user} />;
       case 'profile':
         return <ProfilePage onNavigate={handleNavigate} user={user} />;
+      case 'admin':
+        return <AdminPanel user={user} onNavigate={handleNavigate} />;
+      case 'admin-setup':
+        return <AdminSetupPage onNavigate={handleNavigate} />;
       case 'signin':
         return <SignInPage onNavigate={handleNavigate} />;
       case 'signup':
@@ -999,12 +1004,31 @@ function PricingPage({ onNavigate, user }: { onNavigate: (p: PageType) => void; 
 function DashboardPage({ onNavigate, user }: { onNavigate: (p: PageType, d?: any) => void; user: AuthUser | null }) {
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchEnrollments();
+      checkAdminRole();
     }
   }, [user]);
+
+  const checkAdminRole = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      setIsAdmin(data?.role === 'admin');
+    } catch (error) {
+      console.error('Ошибка проверки роли:', error);
+    }
+  };
 
   const fetchEnrollments = async () => {
     if (!user) return;
@@ -1042,8 +1066,21 @@ function DashboardPage({ onNavigate, user }: { onNavigate: (p: PageType, d?: any
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Мой кабинет</h1>
-        <p className="text-gray-600 mb-8">Отслеживайте свой прогресс обучения и продолжайте курсы</p>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Мой кабинет</h1>
+            <p className="text-gray-600">Отслеживайте свой прогресс обучения и продолжайте курсы</p>
+          </div>
+          {isAdmin && (
+            <button
+              onClick={() => onNavigate('admin')}
+              className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <Shield className="h-5 w-5" />
+              <span className="font-medium">Админ-панель</span>
+            </button>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           {[{ icon: BookOpen, count: enrollments.length, label: 'Записанных курсов' }, { icon: TrendingUp, count: inProgressCourses, label: 'В процессе' }, { icon: Award, count: completedCourses, label: 'Завершено' }, { icon: Clock, count: `${totalHours}ч`, label: 'Всего контента' }].map((stat, i) => (
@@ -1392,6 +1429,176 @@ function SignUpPage({ onNavigate }: { onNavigate: (p: PageType) => void }) {
             </p>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminSetupPage({ onNavigate }: { onNavigate: (p: PageType) => void }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          }
+        }
+      });
+
+      if (signUpError) throw signUpError;
+
+      if (data.user) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ role: 'admin', full_name: fullName })
+          .eq('id', data.user.id);
+
+        if (updateError) throw updateError;
+
+        setSuccess(true);
+        setTimeout(() => {
+          onNavigate('signin');
+        }, 2000);
+      }
+    } catch (error: any) {
+      setError(error.message || 'Ошибка создания администратора');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <div className="mx-auto h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+            <Shield className="h-10 w-10 text-green-600" />
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            Создание администратора
+          </h2>
+          <p className="text-gray-600">
+            Создайте первого администратора для управления платформой
+          </p>
+        </div>
+
+        {success ? (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+            <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-3" />
+            <h3 className="text-lg font-semibold text-green-900 mb-2">
+              Администратор создан успешно
+            </h3>
+            <p className="text-sm text-green-700">
+              Перенаправление на страницу входа...
+            </p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-lg p-8">
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
+                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
+                  Полное имя
+                </label>
+                <input
+                  id="fullName"
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Иван Иванов"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                  Email адрес
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="admin@example.com"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                  Пароль
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Минимум 6 символов"
+                  minLength={6}
+                />
+              </div>
+
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-start space-x-3">
+                  <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-blue-700">
+                    Сохраните эти данные в безопасном месте. Они понадобятся для входа в административную панель.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Создание...</span>
+                  </>
+                ) : (
+                  <>
+                    <Shield className="h-5 w-5" />
+                    <span>Создать администратора</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => onNavigate('home')}
+                className="text-sm text-gray-600 hover:text-gray-900"
+              >
+                На главную страницу
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
