@@ -45,6 +45,7 @@ export function SettingsEditor() {
         setSettings({
           site_name: 'EduPlatform',
           logo_url: '',
+          hero_badge_text: 'Преобразите свою карьеру с курсами от экспертов',
           hero_title: 'Учитесь онлайн в удобном темпе',
           hero_description: 'Получите доступ к тысячам экспертных курсов и улучшите свои навыки',
           hero_cta_text: 'Начать обучение',
@@ -54,6 +55,8 @@ export function SettingsEditor() {
           about_title: 'О нашей платформе',
           about_description: 'Мы создаем современное образовательное пространство, где каждый может найти курсы для развития своих навыков и достижения целей.',
           about_image_url: '',
+          cta_card_title: 'Начните сегодня',
+          cta_card_subtitle: 'И измените свое будущее',
           social_links: []
         });
       }
@@ -189,6 +192,17 @@ export function SettingsEditor() {
         <h3 className="text-lg font-semibold text-gray-900">Главная страница (Hero)</h3>
 
         <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Текст бейджа</label>
+          <input
+            type="text"
+            value={settings.hero_badge_text}
+            onChange={(e) => setSettings({ ...settings, hero_badge_text: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            placeholder="Преобразите свою карьеру с курсами от экспертов"
+          />
+        </div>
+
+        <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Заголовок</label>
           <input
             type="text"
@@ -285,6 +299,32 @@ export function SettingsEditor() {
               setUploading(false);
             }}
             label="Изображение раздела"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-6 bg-white p-6 rounded-lg border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900">Плашка призыва к действию</h3>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Заголовок плашки</label>
+          <input
+            type="text"
+            value={settings.cta_card_title}
+            onChange={(e) => setSettings({ ...settings, cta_card_title: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            placeholder="Начните сегодня"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Подзаголовок плашки</label>
+          <input
+            type="text"
+            value={settings.cta_card_subtitle}
+            onChange={(e) => setSettings({ ...settings, cta_card_subtitle: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            placeholder="И измените свое будущее"
           />
         </div>
       </div>

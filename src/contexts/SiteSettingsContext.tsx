@@ -14,6 +14,7 @@ interface SocialLink {
 interface SiteSettings {
   site_name: string;
   logo_url: string;
+  hero_badge_text: string;
   hero_title: string;
   hero_description: string;
   hero_cta_text: string;
@@ -23,12 +24,15 @@ interface SiteSettings {
   about_title: string;
   about_description: string;
   about_image_url: string;
+  cta_card_title: string;
+  cta_card_subtitle: string;
   social_links: SocialLink[];
 }
 
 const defaultSettings: SiteSettings = {
   site_name: 'EduPlatform',
   logo_url: '',
+  hero_badge_text: 'Преобразите свою карьеру с курсами от экспертов',
   hero_title: 'Учите навыки, которые важны',
   hero_description: 'Получите доступ к тысячам экспертных курсов и улучшите свои навыки',
   hero_cta_text: 'Начать обучение',
@@ -38,6 +42,8 @@ const defaultSettings: SiteSettings = {
   about_title: 'О нашей платформе',
   about_description: 'Мы создаем современное образовательное пространство, где каждый может найти курсы для развития своих навыков и достижения целей.',
   about_image_url: '',
+  cta_card_title: 'Начните сегодня',
+  cta_card_subtitle: 'И измените свое будущее',
   social_links: []
 };
 

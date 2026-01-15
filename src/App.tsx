@@ -293,7 +293,7 @@ function HomePage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }
           <div className="text-center max-w-4xl mx-auto">
             <div className="inline-flex items-center space-x-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-8">
               <Sparkles className="h-4 w-4" />
-              <span>Преобразите свою карьеру с курсами от экспертов</span>
+              <span>{settings.hero_badge_text}</span>
             </div>
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-gray-900 mb-6 leading-tight">
               {settings.hero_title}
@@ -342,8 +342,8 @@ function HomePage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }
                 />
               </div>
               <div className="absolute -bottom-6 -left-6 bg-blue-600 text-white p-6 rounded-xl shadow-xl max-w-xs">
-                <p className="text-3xl font-bold mb-1">Начните сегодня</p>
-                <p className="text-blue-100">И измените свое будущее</p>
+                <p className="text-3xl font-bold mb-1">{settings.cta_card_title}</p>
+                <p className="text-blue-100">{settings.cta_card_subtitle}</p>
               </div>
             </div>
           </div>
