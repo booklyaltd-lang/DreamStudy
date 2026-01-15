@@ -1,5 +1,11 @@
-import { useState } from 'react';
-import { Bold, Italic, List, ListOrdered, Link, Image, Video, Code } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import { Bold, Italic, List, ListOrdered, Link, Image, Video, Code, Upload } from 'lucide-react';
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 interface RichTextEditorProps {
   value: string;
@@ -9,6 +15,8 @@ interface RichTextEditorProps {
 
 export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) {
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const insertTag = (tag: string, attributes?: string) => {
     const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
@@ -40,6 +48,70 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
       textarea.focus();
       textarea.setSelectionRange(start, newText.length - after.length);
     }, 0);
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      if (!event.target.files || event.target.files.length === 0) {
+        return;
+      }
+
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const allowedFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+
+      if (!allowedFormats.includes(fileExt?.toLowerCase() || '')) {
+        alert(`Формат .${fileExt} не поддерживается`);
+        return;
+      }
+
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        alert('Размер изображения не должен превышать 5 МБ');
+        return;
+      }
+
+      setUploading(true);
+
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('content-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('content-images')
+        .getPublicUrl(filePath);
+
+      const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+      if (textarea) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const before = value.substring(0, start);
+        const after = value.substring(end);
+        const newText = `${before}<img src="${publicUrl}" alt="Изображение" class="w-full rounded-lg my-4" />${after}`;
+        onChange(newText);
+        setTimeout(() => {
+          textarea.focus();
+          textarea.setSelectionRange(start, newText.length - after.length);
+        }, 0);
+      }
+    } catch (error: any) {
+      alert('Ошибка загрузки: ' + error.message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const renderPreview = () => {
@@ -77,8 +149,22 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
             <button type="button" onClick={() => insertTag('a')} className="p-2 hover:bg-gray-200 rounded" title="Ссылка">
               <Link className="h-4 w-4" />
             </button>
-            <button type="button" onClick={() => insertTag('img')} className="p-2 hover:bg-gray-200 rounded" title="Изображение">
-              <Image className="h-4 w-4" />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+              id="rich-editor-image-upload"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="p-2 hover:bg-gray-200 rounded disabled:opacity-50"
+              title="Загрузить изображение"
+            >
+              {uploading ? <Upload className="h-4 w-4 animate-spin" /> : <Image className="h-4 w-4" />}
             </button>
             <button type="button" onClick={() => insertTag('video')} className="p-2 hover:bg-gray-200 rounded" title="Видео (YouTube)">
               <Video className="h-4 w-4" />
@@ -124,7 +210,7 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
         <p className="font-medium mb-1">Подсказки:</p>
         <ul className="space-y-1 text-xs">
           <li>• Выделите текст и нажмите кнопку для форматирования</li>
-          <li>• Для изображения вставьте URL в выделенный текст</li>
+          <li>• Нажмите на иконку изображения для загрузки с компьютера</li>
           <li>• Для YouTube видео используйте формат: https://youtube.com/embed/VIDEO_ID</li>
           <li>• Для HTML кода можно вставить напрямую в режиме редактора</li>
         </ul>

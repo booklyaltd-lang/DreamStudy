@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { ArrowLeft } from 'lucide-react';
 import { RichTextEditor } from './RichTextEditor';
 import { ImageUploader } from './ImageUploader';
+import { VideoUploader } from './VideoUploader';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -46,7 +47,8 @@ export function BlogEditor({ post, onClose }: BlogEditorProps) {
     is_published: post?.is_published || false
   });
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -183,10 +185,10 @@ export function BlogEditor({ post, onClose }: BlogEditorProps) {
             <ImageUploader
               bucket="blog-images"
               currentImage={formData.cover_image_url}
-              onUploadStart={() => setUploading(true)}
+              onUploadStart={() => setUploadingImage(true)}
               onUploadComplete={(url) => {
                 setFormData({ ...formData, cover_image_url: url });
-                setUploading(false);
+                setUploadingImage(false);
               }}
               label="Обложка статьи"
             />
@@ -194,23 +196,44 @@ export function BlogEditor({ post, onClose }: BlogEditorProps) {
 
           <div className="col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">Видео (опционально)</label>
-            <div className="space-y-2">
+            <div className="space-y-4">
               <select
                 value={formData.video_type}
-                onChange={(e) => setFormData({ ...formData, video_type: e.target.value })}
+                onChange={(e) => {
+                  const newType = e.target.value;
+                  setFormData({
+                    ...formData,
+                    video_type: newType,
+                    video_url: newType === 'upload' ? formData.video_url : ''
+                  });
+                }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 <option value="youtube">YouTube</option>
                 <option value="vimeo">Vimeo</option>
+                <option value="upload">Загрузить файл</option>
                 <option value="html">HTML Embed</option>
               </select>
-              <input
-                type="text"
-                value={formData.video_url}
-                onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-                placeholder="URL видео или HTML код"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
+
+              {formData.video_type === 'upload' ? (
+                <VideoUploader
+                  bucket="blog-videos"
+                  currentVideo={formData.video_url}
+                  onUploadStart={() => setUploadingVideo(true)}
+                  onUploadComplete={(url) => {
+                    setFormData({ ...formData, video_url: url });
+                    setUploadingVideo(false);
+                  }}
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={formData.video_url}
+                  onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
+                  placeholder="URL видео или HTML код"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              )}
             </div>
           </div>
 
@@ -233,10 +256,10 @@ export function BlogEditor({ post, onClose }: BlogEditorProps) {
           </button>
           <button
             type="submit"
-            disabled={saving || uploading}
+            disabled={saving || uploadingImage || uploadingVideo}
             className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {saving ? 'Сохранение...' : uploading ? 'Ожидание загрузки...' : post ? 'Обновить' : 'Опубликовать'}
+            {saving ? 'Сохранение...' : (uploadingImage || uploadingVideo) ? 'Ожидание загрузки...' : post ? 'Обновить' : 'Опубликовать'}
           </button>
         </div>
       </form>
