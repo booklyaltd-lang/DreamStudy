@@ -39,7 +39,6 @@ export function BlogEditor({ post, onClose }: BlogEditorProps) {
     excerpt: post?.excerpt || '',
     content_html: post?.content_html || '',
     cover_image_url: post?.cover_image_url || '',
-    author: post?.author || '',
     category: post?.category || 'Обучение',
     required_tier: post?.required_tier || 'free',
     video_url: post?.video_url || '',
@@ -56,8 +55,11 @@ export function BlogEditor({ post, onClose }: BlogEditorProps) {
     setError('');
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+
       const dataToSave = {
         ...formData,
+        author_id: user?.id,
         published_at: formData.is_published && !post ? new Date().toISOString() : post?.published_at
       };
 
@@ -143,17 +145,6 @@ export function BlogEditor({ post, onClose }: BlogEditorProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Автор</label>
-            <input
-              type="text"
-              required
-              value={formData.author}
-              onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Категория</label>
             <input
               type="text"
@@ -161,6 +152,18 @@ export function BlogEditor({ post, onClose }: BlogEditorProps) {
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Статус</label>
+            <select
+              value={formData.is_published ? 'published' : 'draft'}
+              onChange={(e) => setFormData({ ...formData, is_published: e.target.value === 'published' })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="draft">Черновик</option>
+              <option value="published">Опубликован</option>
+            </select>
           </div>
 
           <div>
@@ -173,18 +176,6 @@ export function BlogEditor({ post, onClose }: BlogEditorProps) {
               <option value="free">Бесплатно</option>
               <option value="basic">Basic</option>
               <option value="premium">Premium</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Статус</label>
-            <select
-              value={formData.is_published ? 'published' : 'draft'}
-              onChange={(e) => setFormData({ ...formData, is_published: e.target.value === 'published' })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="draft">Черновик</option>
-              <option value="published">Опубликован</option>
             </select>
           </div>
 
