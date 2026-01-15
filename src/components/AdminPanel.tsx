@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { User as AuthUser } from '@supabase/supabase-js';
-import { Users, BookOpen, FileText, Settings, Plus, CreditCard as Edit, Trash2, Eye, ArrowLeft, Shield, AlertCircle } from 'lucide-react';
+import { Users, BookOpen, FileText, Settings, Plus, CreditCard as Edit, Trash2, Eye, ArrowLeft, Shield, AlertCircle, ListVideo } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
+import { BlogEditor } from './BlogEditor';
+import { SettingsEditor } from './SettingsEditor';
+import { LessonsManagement } from './LessonsManagement';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -170,6 +173,7 @@ function CoursesManagement() {
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showLessons, setShowLessons] = useState(false);
   const [editingCourse, setEditingCourse] = useState<any>(null);
 
   useEffect(() => {
@@ -206,6 +210,18 @@ function CoursesManagement() {
 
   if (loading) {
     return <div className="text-center py-8">Загрузка...</div>;
+  }
+
+  if (showLessons && editingCourse) {
+    return (
+      <LessonsManagement
+        course={editingCourse}
+        onBack={() => {
+          setShowLessons(false);
+          setEditingCourse(null);
+        }}
+      />
+    );
   }
 
   if (showForm) {
@@ -271,15 +287,27 @@ function CoursesManagement() {
                 <button
                   onClick={() => {
                     setEditingCourse(course);
+                    setShowLessons(true);
+                  }}
+                  className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
+                  title="Управление уроками"
+                >
+                  <ListVideo className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingCourse(course);
                     setShowForm(true);
                   }}
                   className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                  title="Редактировать курс"
                 >
                   <Edit className="h-5 w-5" />
                 </button>
                 <button
                   onClick={() => handleDelete(course.id)}
                   className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                  title="Удалить курс"
                 >
                   <Trash2 className="h-5 w-5" />
                 </button>
@@ -523,6 +551,8 @@ function CourseForm({ course, onClose }: { course?: any; onClose: () => void }) 
 function BlogManagement() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showEditor, setShowEditor] = useState(false);
+  const [editingPost, setEditingPost] = useState<any>(null);
 
   useEffect(() => {
     fetchPosts();
@@ -558,11 +588,27 @@ function BlogManagement() {
 
   if (loading) return <div className="text-center py-8">Загрузка...</div>;
 
+  if (showEditor) {
+    return (
+      <BlogEditor
+        post={editingPost}
+        onClose={() => {
+          setShowEditor(false);
+          setEditingPost(null);
+          fetchPosts();
+        }}
+      />
+    );
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-gray-900">Управление блогом</h2>
-        <button className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+        <button
+          onClick={() => setShowEditor(true)}
+          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
           <Plus className="h-5 w-5" />
           <span>Добавить статью</span>
         </button>
@@ -593,7 +639,13 @@ function BlogManagement() {
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
+                <button
+                  onClick={() => {
+                    setEditingPost(post);
+                    setShowEditor(true);
+                  }}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                >
                   <Edit className="h-5 w-5" />
                 </button>
                 <button
@@ -687,45 +739,5 @@ function UsersManagement() {
 }
 
 function SettingsManagement() {
-  return (
-    <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-6">Настройки системы</h2>
-
-      <div className="space-y-6">
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-start space-x-3">
-            <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
-            <div>
-              <h3 className="font-medium text-blue-900">Информация о системе</h3>
-              <p className="text-sm text-blue-700 mt-1">
-                Платформа работает на Supabase. Все данные защищены и хранятся в базе данных PostgreSQL.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-6">
-          <div className="p-6 border border-gray-200 rounded-lg">
-            <h3 className="font-semibold text-gray-900 mb-2">База данных</h3>
-            <p className="text-sm text-gray-600">Supabase PostgreSQL</p>
-          </div>
-
-          <div className="p-6 border border-gray-200 rounded-lg">
-            <h3 className="font-semibold text-gray-900 mb-2">Хранилище файлов</h3>
-            <p className="text-sm text-gray-600">Supabase Storage</p>
-          </div>
-
-          <div className="p-6 border border-gray-200 rounded-lg">
-            <h3 className="font-semibold text-gray-900 mb-2">Авторизация</h3>
-            <p className="text-sm text-gray-600">Supabase Auth</p>
-          </div>
-
-          <div className="p-6 border border-gray-200 rounded-lg">
-            <h3 className="font-semibold text-gray-900 mb-2">Безопасность</h3>
-            <p className="text-sm text-gray-600">RLS включен</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <SettingsEditor />;
 }

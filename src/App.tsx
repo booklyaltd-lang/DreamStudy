@@ -4,6 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 import { Session, User as AuthUser } from '@supabase/supabase-js';
 import { ImageUploader } from './components/ImageUploader';
 import { AdminPanel } from './components/AdminPanel';
+import { Pagination } from './components/Pagination';
+import { Breadcrumbs } from './components/Breadcrumbs';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -448,6 +450,8 @@ function CoursesPage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => voi
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   useEffect(() => {
     fetchCourses();
@@ -474,11 +478,20 @@ function CoursesPage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => voi
       (selectedLevel === 'all' || c.level === selectedLevel)
     );
     setFilteredCourses(filtered);
+    setCurrentPage(1);
   };
+
+  const paginatedCourses = filteredCourses.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  const totalPages = Math.ceil(filteredCourses.length / itemsPerPage);
 
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Breadcrumbs items={[{ label: 'Главная', onClick: () => onNavigate('home') }, { label: 'Курсы' }]} />
+
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Наши курсы</h1>
           <p className="text-xl text-gray-600">
@@ -536,11 +549,20 @@ function CoursesPage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => voi
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredCourses.map((course) => (
-              <CourseCard key={course.id} course={course} onClick={() => onNavigate('course', course)} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {paginatedCourses.map((course) => (
+                <CourseCard key={course.id} course={course} onClick={() => onNavigate('course', course)} />
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            )}
+          </>
         )}
       </div>
     </div>
@@ -743,6 +765,8 @@ function BlogPage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [categories, setCategories] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   useEffect(() => {
     fetchPosts();
@@ -771,11 +795,20 @@ function BlogPage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }
       (selectedCategory === 'all' || p.category === selectedCategory)
     );
     setFilteredPosts(filtered);
+    setCurrentPage(1);
   };
+
+  const paginatedPosts = filteredPosts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  const totalPages = Math.ceil(filteredPosts.length / itemsPerPage);
 
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Breadcrumbs items={[{ label: 'Главная', onClick: () => onNavigate('home') }, { label: 'Блог' }]} />
+
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Наш блог</h1>
           <p className="text-xl text-gray-600">
@@ -823,11 +856,20 @@ function BlogPage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredPosts.map((post) => (
-              <BlogCard key={post.id} post={post} onClick={() => onNavigate('blogpost', post)} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {paginatedPosts.map((post) => (
+                <BlogCard key={post.id} post={post} onClick={() => onNavigate('blogpost', post)} />
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            )}
+          </>
         )}
       </div>
     </div>
