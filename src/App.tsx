@@ -323,7 +323,7 @@ function HomePage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }
                 {settings.about_description}
               </p>
               <ul className="space-y-3">
-                {['Обучение в удобном темпе', 'Сертификаты о прохождении', 'Поддержка экспертов', 'Практические проекты'].map((item, i) => (
+                {settings.about_features.map((item, i) => (
                   <li key={i} className="flex items-center space-x-3">
                     <div className="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
                       <Check className="h-4 w-4 text-blue-600" />

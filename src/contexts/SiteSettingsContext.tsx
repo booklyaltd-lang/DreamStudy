@@ -24,6 +24,7 @@ interface SiteSettings {
   about_title: string;
   about_description: string;
   about_image_url: string;
+  about_features: string[];
   cta_card_title: string;
   cta_card_subtitle: string;
   social_links: SocialLink[];
@@ -42,6 +43,7 @@ const defaultSettings: SiteSettings = {
   about_title: 'О нашей платформе',
   about_description: 'Мы создаем современное образовательное пространство, где каждый может найти курсы для развития своих навыков и достижения целей.',
   about_image_url: '',
+  about_features: ['Обучение в удобном темпе', 'Сертификаты о прохождении', 'Поддержка экспертов', 'Практические проекты'],
   cta_card_title: 'Начните сегодня',
   cta_card_subtitle: 'И измените свое будущее',
   social_links: []
@@ -71,7 +73,8 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
       if (data) {
         setSettings({
           ...data,
-          social_links: data.social_links || []
+          social_links: data.social_links || [],
+          about_features: data.about_features || ['Обучение в удобном темпе', 'Сертификаты о прохождении', 'Поддержка экспертов', 'Практические проекты']
         });
       }
     } catch (error) {

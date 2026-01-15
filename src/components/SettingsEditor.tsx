@@ -39,7 +39,8 @@ export function SettingsEditor() {
       if (data) {
         setSettings({
           ...data,
-          social_links: data.social_links || []
+          social_links: data.social_links || [],
+          about_features: data.about_features || ['Обучение в удобном темпе', 'Сертификаты о прохождении', 'Поддержка экспертов', 'Практические проекты']
         });
       } else {
         setSettings({
@@ -55,6 +56,7 @@ export function SettingsEditor() {
           about_title: 'О нашей платформе',
           about_description: 'Мы создаем современное образовательное пространство, где каждый может найти курсы для развития своих навыков и достижения целей.',
           about_image_url: '',
+          about_features: ['Обучение в удобном темпе', 'Сертификаты о прохождении', 'Поддержка экспертов', 'Практические проекты'],
           cta_card_title: 'Начните сегодня',
           cta_card_subtitle: 'И измените свое будущее',
           social_links: []
@@ -122,6 +124,24 @@ export function SettingsEditor() {
     const newLinks = [...settings.social_links];
     newLinks[index] = { ...newLinks[index], [field]: value };
     setSettings({ ...settings, social_links: newLinks });
+  };
+
+  const addFeature = () => {
+    setSettings({
+      ...settings,
+      about_features: [...settings.about_features, '']
+    });
+  };
+
+  const removeFeature = (index: number) => {
+    const newFeatures = settings.about_features.filter((_: any, i: number) => i !== index);
+    setSettings({ ...settings, about_features: newFeatures });
+  };
+
+  const updateFeature = (index: number, value: string) => {
+    const newFeatures = [...settings.about_features];
+    newFeatures[index] = value;
+    setSettings({ ...settings, about_features: newFeatures });
   };
 
   if (loading) {
@@ -300,6 +320,42 @@ export function SettingsEditor() {
             }}
             label="Изображение раздела"
           />
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <label className="block text-sm font-medium text-gray-700">Список преимуществ</label>
+            <button
+              onClick={addFeature}
+              className="flex items-center space-x-1 px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Добавить</span>
+            </button>
+          </div>
+          {settings.about_features.length === 0 ? (
+            <p className="text-sm text-gray-600">Преимущества не добавлены</p>
+          ) : (
+            <div className="space-y-3">
+              {settings.about_features.map((feature: string, index: number) => (
+                <div key={index} className="flex items-center space-x-3">
+                  <input
+                    type="text"
+                    placeholder="Название преимущества"
+                    value={feature}
+                    onChange={(e) => updateFeature(index, e.target.value)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={() => removeFeature(index)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
