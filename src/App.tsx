@@ -6,6 +6,7 @@ import { ImageUploader } from './components/ImageUploader';
 import { AdminPanel } from './components/AdminPanel';
 import { Pagination } from './components/Pagination';
 import { Breadcrumbs } from './components/Breadcrumbs';
+import { useSiteSettings } from './contexts/SiteSettingsContext';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -90,14 +91,19 @@ function App() {
 function Header({ onNavigate, currentPage, user, onSignOut }: { onNavigate: (p: PageType, d?: any) => void; currentPage: PageType; user: AuthUser | null; onSignOut: () => void }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { settings } = useSiteSettings();
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-b border-gray-200 z-50">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center cursor-pointer" onClick={() => onNavigate('home')}>
-            <BookOpen className="h-8 w-8 text-blue-600" />
-            <span className="ml-2 text-xl font-bold text-gray-900">EduPlatform</span>
+            {settings.logo_url ? (
+              <img src={settings.logo_url} alt={settings.site_name} className="h-8 w-8 object-contain" />
+            ) : (
+              <BookOpen className="h-8 w-8 text-blue-600" />
+            )}
+            <span className="ml-2 text-xl font-bold text-gray-900">{settings.site_name}</span>
           </div>
 
           <div className="hidden md:flex items-center space-x-8">
@@ -171,22 +177,48 @@ function Header({ onNavigate, currentPage, user, onSignOut }: { onNavigate: (p: 
 }
 
 function Footer({ onNavigate }: { onNavigate: (p: PageType) => void }) {
+  const { settings } = useSiteSettings();
+
+  const getSocialIcon = (platform: string) => {
+    const platformLower = platform.toLowerCase();
+    if (platformLower.includes('facebook')) return Facebook;
+    if (platformLower.includes('twitter') || platformLower.includes('x')) return Twitter;
+    if (platformLower.includes('linkedin')) return Linkedin;
+    if (platformLower.includes('instagram')) return Instagram;
+    return Share2;
+  };
+
   return (
     <footer className="bg-gray-900 text-gray-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center mb-4">
-              <BookOpen className="h-8 w-8 text-blue-500" />
-              <span className="ml-2 text-xl font-bold text-white">EduPlatform</span>
+              {settings.logo_url ? (
+                <img src={settings.logo_url} alt={settings.site_name} className="h-8 w-8 object-contain" />
+              ) : (
+                <BookOpen className="h-8 w-8 text-blue-500" />
+              )}
+              <span className="ml-2 text-xl font-bold text-white">{settings.site_name}</span>
             </div>
-            <p className="text-sm text-gray-400 mb-6">Расширяем возможности учащихся по всему миру с помощью качественных онлайн-курсов и образовательного контента. Начните свой путь обучения сегодня.</p>
+            <p className="text-sm text-gray-400 mb-6">{settings.footer_description}</p>
             <div className="flex space-x-4">
-              {[Facebook, Twitter, Linkedin, Instagram].map((Icon, i) => (
-                <a key={i} href="#" className="p-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors">
-                  <Icon className="h-5 w-5" />
-                </a>
-              ))}
+              {settings.social_links.length > 0 ? (
+                settings.social_links.map((link, i) => {
+                  const Icon = getSocialIcon(link.platform);
+                  return (
+                    <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="p-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors">
+                      <Icon className="h-5 w-5" />
+                    </a>
+                  );
+                })
+              ) : (
+                [Facebook, Twitter, Linkedin, Instagram].map((Icon, i) => (
+                  <a key={i} href="#" className="p-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors">
+                    <Icon className="h-5 w-5" />
+                  </a>
+                ))
+              )}
             </div>
           </div>
           <div>
@@ -222,6 +254,7 @@ function Footer({ onNavigate }: { onNavigate: (p: PageType) => void }) {
 function HomePage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }) {
   const [featuredCourses, setFeaturedCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { settings } = useSiteSettings();
 
   useEffect(() => {
     fetchFeaturedCourses();
@@ -238,10 +271,24 @@ function HomePage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }
     }
   };
 
+  const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : { r: 59, g: 130, b: 246 };
+  };
+
+  const rgb = hexToRgb(settings.hero_background_color);
+  const bgStyle = {
+    background: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${settings.hero_background_opacity})`
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-green-600/10 -z-10" />
+        <div className="absolute inset-0 -z-10" style={bgStyle} />
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-4xl mx-auto">
             <div className="inline-flex items-center space-x-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-8">
@@ -249,14 +296,14 @@ function HomePage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }
               <span>Преобразите свою карьеру с курсами от экспертов</span>
             </div>
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-gray-900 mb-6 leading-tight">
-              Учите навыки, которые <span className="text-blue-600">важны</span>
+              {settings.hero_title}
             </h1>
             <p className="text-xl text-gray-600 mb-10 leading-relaxed">
-              Присоединяйтесь к тысячам учащихся, осваивающих востребованные навыки через интерактивные курсы, преподавателей-экспертов и поддерживающее сообщество.
+              {settings.hero_description}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
               <button onClick={() => onNavigate('courses')} className="w-full sm:w-auto px-8 py-4 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2">
-                <span>Смотреть курсы</span>
+                <span>{settings.hero_cta_text}</span>
                 <ArrowRight className="h-5 w-5" />
               </button>
               <button onClick={() => onNavigate('pricing')} className="w-full sm:w-auto px-8 py-4 bg-white text-blue-600 font-semibold rounded-xl border-2 border-blue-600 hover:bg-blue-50 transition-all duration-300">
@@ -271,14 +318,9 @@ function HomePage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">О нашей платформе</h2>
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">{settings.about_title}</h2>
               <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                Мы создаем современное образовательное пространство, где каждый может найти курсы для развития своих навыков и достижения целей.
-                Наша миссия - сделать качественное образование доступным для всех.
-              </p>
-              <p className="text-gray-600 mb-6">
-                Присоединяйтесь к сообществу учащихся, которые уже трансформируют свою карьеру благодаря нашим курсам.
-                Получите доступ к экспертным знаниям, практическим навыкам и поддержке профессионального сообщества.
+                {settings.about_description}
               </p>
               <ul className="space-y-3">
                 {['Обучение в удобном темпе', 'Сертификаты о прохождении', 'Поддержка экспертов', 'Практические проекты'].map((item, i) => (
@@ -294,8 +336,8 @@ function HomePage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }
             <div className="relative">
               <div className="aspect-square rounded-2xl overflow-hidden shadow-2xl">
                 <img
-                  src="https://images.pexels.com/photos/3184398/pexels-photo-3184398.jpeg?auto=compress&cs=tinysrgb&w=800"
-                  alt="О платформе"
+                  src={settings.about_image_url || "https://images.pexels.com/photos/3184398/pexels-photo-3184398.jpeg?auto=compress&cs=tinysrgb&w=800"}
+                  alt={settings.about_title}
                   className="w-full h-full object-cover"
                 />
               </div>

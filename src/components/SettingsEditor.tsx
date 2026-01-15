@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { Save, Plus, Trash2 } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
+import { useSiteSettings } from '../contexts/SiteSettingsContext';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -20,6 +21,7 @@ export function SettingsEditor() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const { refreshSettings } = useSiteSettings();
 
   useEffect(() => {
     fetchSettings();
@@ -92,6 +94,7 @@ export function SettingsEditor() {
       }
 
       setSuccess('Настройки успешно сохранены');
+      await refreshSettings();
       setTimeout(() => setSuccess(''), 3000);
     } catch (error: any) {
       setError(error.message);
