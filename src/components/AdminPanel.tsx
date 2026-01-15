@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { User as AuthUser } from '@supabase/supabase-js';
-import { Users, BookOpen, FileText, Settings, Plus, CreditCard as Edit, Trash2, Eye, ArrowLeft, Shield, AlertCircle, ListVideo } from 'lucide-react';
+import { Users, BookOpen, FileText, Settings, Plus, CreditCard as Edit, Trash2, Eye, ArrowLeft, Shield, AlertCircle, ListVideo, DollarSign } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
 import { BlogEditor } from './BlogEditor';
 import { SettingsEditor } from './SettingsEditor';
 import { LessonsManagement } from './LessonsManagement';
+import { FinancialManagement } from './FinancialManagement';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -40,7 +41,7 @@ function generateSlug(title: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-type AdminTab = 'courses' | 'blog' | 'users' | 'settings';
+type AdminTab = 'courses' | 'blog' | 'users' | 'finances' | 'settings';
 
 interface AdminPanelProps {
   user: AuthUser | null;
@@ -136,6 +137,7 @@ export function AdminPanel({ user, onNavigate }: AdminPanelProps) {
                 { id: 'courses', name: 'Курсы', icon: BookOpen },
                 { id: 'blog', name: 'Блог', icon: FileText },
                 { id: 'users', name: 'Пользователи', icon: Users },
+                { id: 'finances', name: 'Финансы', icon: DollarSign },
                 { id: 'settings', name: 'Настройки', icon: Settings }
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -161,6 +163,7 @@ export function AdminPanel({ user, onNavigate }: AdminPanelProps) {
             {activeTab === 'courses' && <CoursesManagement />}
             {activeTab === 'blog' && <BlogManagement />}
             {activeTab === 'users' && <UsersManagement />}
+            {activeTab === 'finances' && <FinancialManagement />}
             {activeTab === 'settings' && <SettingsManagement />}
           </div>
         </div>
