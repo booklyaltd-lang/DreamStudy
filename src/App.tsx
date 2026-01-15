@@ -1034,11 +1034,40 @@ function BlogPostPage({ post, onNavigate }: { post: any; onNavigate: (p: PageTyp
 }
 
 function PricingPage({ onNavigate, user }: { onNavigate: (p: PageType) => void; user: AuthUser | null }) {
-  const plans = [
-    { name: 'Бесплатный', price: 0, period: 'навсегда', features: ['Доступ к бесплатным курсам', 'Поддержка сообщества', 'Базовое отслеживание прогресса', 'Ограниченные материалы курса', 'Стандартное качество видео'], tier: 'free' },
-    { name: 'Базовый', price: 29, period: 'месяц', features: ['Все функции Бесплатного', 'Доступ к курсам базового уровня', 'Скачивание материалов курса', 'HD качество видео', 'Приоритетная поддержка по email', 'Сертификаты о завершении', 'Ежемесячные сессии вопросов и ответов'], tier: 'basic', highlighted: true },
-    { name: 'Премиум', price: 79, period: 'месяц', features: ['Все функции Базового', 'Доступ ко всем премиум-курсам', 'Неограниченная загрузка курсов', '4K качество видео', 'Индивидуальные сессии наставничества', 'Карьерное консультирование', 'Эксклюзивные мастер-классы', 'Гарантия пожизненного доступа', 'Индивидуальные траектории обучения'], tier: 'premium' },
-  ];
+  const [plans, setPlans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPricingPlans();
+  }, []);
+
+  const fetchPricingPlans = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('pricing_tiers')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+
+      if (error) throw error;
+
+      const formattedPlans = (data || []).map((tier, index) => ({
+        name: tier.name,
+        price: tier.price_monthly,
+        priceYearly: tier.price_yearly,
+        period: 'месяц',
+        features: tier.features || [],
+        tier: tier.slug,
+        highlighted: index === 1
+      }));
+
+      setPlans(formattedPlans);
+    } catch (error) {
+      console.error('Ошибка загрузки тарифов:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSelectPlan = (tier: string) => {
     if (!user) {
@@ -1062,41 +1091,67 @@ function PricingPage({ onNavigate, user }: { onNavigate: (p: PageType) => void; 
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          {plans.map((plan) => (
-            <div key={plan.name} className={`relative bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 ${plan.highlighted ? 'ring-2 ring-blue-600 transform scale-105' : 'hover:shadow-xl'}`}>
-              {plan.highlighted && (
-                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-center py-2 text-sm font-semibold">
-                  Самый популярный
-                </div>
-              )}
-
-              <div className={`p-8 ${plan.highlighted ? 'pt-14' : ''}`}>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-
-                <div className="mb-6">
-                  <div className="flex items-baseline">
-                    <span className="text-5xl font-extrabold text-gray-900">${plan.price}</span>
-                    <span className="text-gray-600 ml-2">/{plan.period}</span>
-                  </div>
-                </div>
-
-                <button onClick={() => handleSelectPlan(plan.tier)} className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${plan.highlighted ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}>
-                  {plan.tier === 'free' ? 'Начать' : plan.tier === 'basic' ? 'Выбрать базовый' : 'Выбрать премиум'}
-                </button>
-
-                <ul className="mt-8 space-y-4">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-start space-x-3">
-                      <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700 text-sm">{feature}</span>
-                    </li>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-2xl shadow-lg p-8 animate-pulse">
+                <div className="h-8 bg-gray-200 rounded mb-4"></div>
+                <div className="h-12 bg-gray-200 rounded mb-6"></div>
+                <div className="h-10 bg-gray-200 rounded mb-8"></div>
+                <div className="space-y-3">
+                  {[1, 2, 3, 4].map((j) => (
+                    <div key={j} className="h-4 bg-gray-200 rounded"></div>
                   ))}
-                </ul>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : plans.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 rounded-lg">
+            <p className="text-gray-600">Тарифные планы не найдены</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            {plans.map((plan) => (
+              <div key={plan.name} className={`relative bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 ${plan.highlighted ? 'ring-2 ring-blue-600 transform scale-105' : 'hover:shadow-xl'}`}>
+                {plan.highlighted && (
+                  <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-center py-2 text-sm font-semibold">
+                    Самый популярный
+                  </div>
+                )}
+
+                <div className={`p-8 ${plan.highlighted ? 'pt-14' : ''}`}>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+
+                  <div className="mb-6">
+                    <div className="flex items-baseline">
+                      <span className="text-5xl font-extrabold text-gray-900">{plan.price}</span>
+                      <span className="text-gray-600 ml-2">₽/{plan.period}</span>
+                    </div>
+                    {plan.priceYearly > 0 && (
+                      <div className="text-sm text-gray-500 mt-1">
+                        или {plan.priceYearly} ₽/год
+                      </div>
+                    )}
+                  </div>
+
+                  <button onClick={() => handleSelectPlan(plan.tier)} className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${plan.highlighted ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}>
+                    {plan.tier === 'free' ? 'Начать' : 'Выбрать тариф'}
+                  </button>
+
+                  <ul className="mt-8 space-y-4">
+                    {plan.features.map((feature: string, i: number) => (
+                      <li key={i} className="flex items-start space-x-3">
+                        <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <span className="text-gray-700 text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="bg-blue-50 rounded-2xl p-8 sm:p-12 text-center max-w-3xl mx-auto">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
