@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, Menu, X, User, LogOut, Clock, BarChart3, Facebook, Twitter, Linkedin, Instagram, ArrowRight, Sparkles, Video, Trophy, Search, Filter, Tag, Calendar, Share2, Check, ArrowLeft, PlayCircle, Lock, CheckCircle, Mail, AlertCircle, Settings, Shield, TrendingUp } from 'lucide-react';
+import { BookOpen, Menu, X, User, LogOut, Clock, BarChart3, Facebook, Twitter, Linkedin, Instagram, ArrowRight, Sparkles, Video, Trophy, Search, Filter, Tag, Calendar, Share2, Check, ArrowLeft, PlayCircle, Lock, CheckCircle, Mail, AlertCircle, Settings, Shield, TrendingUp, Award } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { Session, User as AuthUser } from '@supabase/supabase-js';
 import { ImageUploader } from './components/ImageUploader';
