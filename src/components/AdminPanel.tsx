@@ -238,8 +238,10 @@ function CoursesManagement() {
                   <p className="text-sm text-gray-600">{course.instructor_name}</p>
                   <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
                     <span>{course.price} ₽</span>
-                    <span>{course.duration}</span>
-                    <span>{course.students_count} студентов</span>
+                    <span>{course.duration_hours} часов</span>
+                    <span className={`px-2 py-1 rounded ${course.is_published ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                      {course.is_published ? 'Опубликован' : 'Черновик'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -271,17 +273,17 @@ function CoursesManagement() {
 function CourseForm({ course, onClose }: { course?: any; onClose: () => void }) {
   const [formData, setFormData] = useState({
     title: course?.title || '',
+    slug: course?.slug || '',
     description: course?.description || '',
+    full_description: course?.full_description || '',
     instructor_name: course?.instructor_name || '',
-    instructor_title: course?.instructor_title || '',
-    price: course?.price || 0,
-    duration: course?.duration || '',
-    level: course?.level || 'Начальный',
-    thumbnail_url: course?.thumbnail_url || '',
     instructor_avatar: course?.instructor_avatar || '',
-    students_count: course?.students_count || 0,
-    rating: course?.rating || 5.0,
-    lessons_count: course?.lessons_count || 0
+    price: course?.price || 0,
+    duration_hours: course?.duration_hours || 0,
+    level: course?.level || 'beginner',
+    thumbnail_url: course?.thumbnail_url || '',
+    required_tier: course?.required_tier || 'free',
+    is_published: course?.is_published || false
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -340,18 +342,44 @@ function CourseForm({ course, onClose }: { course?: any; onClose: () => void }) 
             type="text"
             required
             value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            onChange={(e) => {
+              const title = e.target.value;
+              const slug = title.toLowerCase().replace(/[^a-zA-Zа-яА-Я0-9]+/g, '-').replace(/^-+|-+$/g, '');
+              setFormData({ ...formData, title, slug });
+            }}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Описание</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">URL (slug)</label>
+          <input
+            type="text"
+            required
+            value={formData.slug}
+            onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            placeholder="course-url"
+          />
+        </div>
+
+        <div className="col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Краткое описание</label>
           <textarea
             required
-            rows={4}
+            rows={2}
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Полное описание</label>
+          <textarea
+            rows={4}
+            value={formData.full_description}
+            onChange={(e) => setFormData({ ...formData, full_description: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -368,17 +396,6 @@ function CourseForm({ course, onClose }: { course?: any; onClose: () => void }) 
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Должность преподавателя</label>
-          <input
-            type="text"
-            required
-            value={formData.instructor_title}
-            onChange={(e) => setFormData({ ...formData, instructor_title: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Цена (₽)</label>
           <input
             type="number"
@@ -390,14 +407,14 @@ function CourseForm({ course, onClose }: { course?: any; onClose: () => void }) 
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Длительность</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Длительность (часов)</label>
           <input
-            type="text"
+            type="number"
             required
-            value={formData.duration}
-            onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+            value={formData.duration_hours}
+            onChange={(e) => setFormData({ ...formData, duration_hours: Number(e.target.value) })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            placeholder="например: 8 недель"
+            placeholder="24"
           />
         </div>
 
@@ -408,21 +425,35 @@ function CourseForm({ course, onClose }: { course?: any; onClose: () => void }) 
             onChange={(e) => setFormData({ ...formData, level: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           >
-            <option>Начальный</option>
-            <option>Средний</option>
-            <option>Продвинутый</option>
+            <option value="beginner">Начальный</option>
+            <option value="intermediate">Средний</option>
+            <option value="advanced">Продвинутый</option>
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Количество уроков</label>
-          <input
-            type="number"
-            required
-            value={formData.lessons_count}
-            onChange={(e) => setFormData({ ...formData, lessons_count: Number(e.target.value) })}
+          <label className="block text-sm font-medium text-gray-700 mb-2">Необходимая подписка</label>
+          <select
+            value={formData.required_tier}
+            onChange={(e) => setFormData({ ...formData, required_tier: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
+          >
+            <option value="free">Бесплатно</option>
+            <option value="basic">Basic</option>
+            <option value="premium">Premium</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Статус</label>
+          <select
+            value={formData.is_published ? 'published' : 'draft'}
+            onChange={(e) => setFormData({ ...formData, is_published: e.target.value === 'published' })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="draft">Черновик</option>
+            <option value="published">Опубликован</option>
+          </select>
         </div>
 
         <div className="col-span-2">
