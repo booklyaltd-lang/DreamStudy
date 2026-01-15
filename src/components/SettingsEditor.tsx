@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { Save, Plus, Trash2 } from 'lucide-react';
+import { Save, Plus, Trash2, Facebook, Twitter, Linkedin, Instagram, Youtube, Send, Mail, MessageCircle, Phone } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
 import { useSiteSettings } from '../contexts/SiteSettingsContext';
 
@@ -13,6 +13,18 @@ interface SocialLink {
   platform: string;
   url: string;
 }
+
+const SOCIAL_PLATFORMS = [
+  { value: 'facebook', label: 'Facebook', icon: Facebook },
+  { value: 'twitter', label: 'Twitter (X)', icon: Twitter },
+  { value: 'linkedin', label: 'LinkedIn', icon: Linkedin },
+  { value: 'instagram', label: 'Instagram', icon: Instagram },
+  { value: 'youtube', label: 'YouTube', icon: Youtube },
+  { value: 'telegram', label: 'Telegram', icon: Send },
+  { value: 'vk', label: 'ВКонтакте', icon: MessageCircle },
+  { value: 'whatsapp', label: 'WhatsApp', icon: Phone },
+  { value: 'email', label: 'Email', icon: Mail },
+];
 
 export function SettingsEditor() {
   const [settings, setSettings] = useState<any>(null);
@@ -111,7 +123,7 @@ export function SettingsEditor() {
   const addSocialLink = () => {
     setSettings({
       ...settings,
-      social_links: [...settings.social_links, { platform: '', url: '' }]
+      social_links: [...settings.social_links, { platform: SOCIAL_PLATFORMS[0].value, url: '' }]
     });
   };
 
@@ -415,32 +427,44 @@ export function SettingsEditor() {
           <p className="text-sm text-gray-600">Ссылки на социальные сети не добавлены</p>
         ) : (
           <div className="space-y-4">
-            {settings.social_links.map((link: SocialLink, index: number) => (
-              <div key={index} className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg">
-                <div className="flex-1 grid grid-cols-2 gap-4">
-                  <input
-                    type="text"
-                    placeholder="Название (VK, Telegram, YouTube)"
-                    value={link.platform}
-                    onChange={(e) => updateSocialLink(index, 'platform', e.target.value)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input
-                    type="url"
-                    placeholder="https://..."
-                    value={link.url}
-                    onChange={(e) => updateSocialLink(index, 'url', e.target.value)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
+            {settings.social_links.map((link: SocialLink, index: number) => {
+              const selectedPlatform = SOCIAL_PLATFORMS.find(p => p.value === link.platform) || SOCIAL_PLATFORMS[0];
+              const Icon = selectedPlatform.icon;
+
+              return (
+                <div key={index} className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg">
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    <Icon className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1 grid grid-cols-2 gap-4">
+                    <select
+                      value={link.platform}
+                      onChange={(e) => updateSocialLink(index, 'platform', e.target.value)}
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      {SOCIAL_PLATFORMS.map((platform) => (
+                        <option key={platform.value} value={platform.value}>
+                          {platform.label}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="url"
+                      placeholder="https://..."
+                      value={link.url}
+                      onChange={(e) => updateSocialLink(index, 'url', e.target.value)}
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeSocialLink(index)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => removeSocialLink(index)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                >
-                  <Trash2 className="h-5 w-5" />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

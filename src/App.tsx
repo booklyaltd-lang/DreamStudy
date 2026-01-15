@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, Menu, X, User, LogOut, Clock, BarChart3, Facebook, Twitter, Linkedin, Instagram, ArrowRight, Sparkles, Video, Trophy, Search, Filter, Tag, Calendar, Share2, Check, ArrowLeft, PlayCircle, Lock, CheckCircle, Mail, AlertCircle, Settings, Shield, TrendingUp, Award } from 'lucide-react';
+import { BookOpen, Menu, X, User, LogOut, Clock, BarChart3, Facebook, Twitter, Linkedin, Instagram, ArrowRight, Sparkles, Video, Trophy, Search, Filter, Tag, Calendar, Share2, Check, ArrowLeft, PlayCircle, Lock, CheckCircle, Mail, AlertCircle, Settings, Shield, TrendingUp, Award, Youtube, Send, MessageCircle, Phone } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { Session, User as AuthUser } from '@supabase/supabase-js';
 import { ImageUploader } from './components/ImageUploader';
@@ -185,6 +185,11 @@ function Footer({ onNavigate }: { onNavigate: (p: PageType) => void }) {
     if (platformLower.includes('twitter') || platformLower.includes('x')) return Twitter;
     if (platformLower.includes('linkedin')) return Linkedin;
     if (platformLower.includes('instagram')) return Instagram;
+    if (platformLower.includes('youtube')) return Youtube;
+    if (platformLower.includes('telegram')) return Send;
+    if (platformLower.includes('vk') || platformLower.includes('вконтакте')) return MessageCircle;
+    if (platformLower.includes('whatsapp')) return Phone;
+    if (platformLower.includes('email') || platformLower.includes('mail')) return Mail;
     return Share2;
   };
 
