@@ -359,10 +359,21 @@ function CourseCard({ course, onClick }: { course: any; onClick: () => void }) {
     advanced: 'Продвинутый',
   };
 
+  const hasImage = course.thumbnail_url && course.thumbnail_url.trim() !== '';
+
   return (
     <div onClick={onClick} className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer group">
       <div className="relative h-48 overflow-hidden">
-        <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+        {hasImage ? (
+          <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+            <div className="text-center text-white">
+              <BookOpen className="h-16 w-16 mx-auto mb-2 opacity-80" />
+              <span className="text-4xl font-bold opacity-90">{course.title.charAt(0).toUpperCase()}</span>
+            </div>
+          </div>
+        )}
         <div className="absolute top-4 right-4">
           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${levelColors[course.level]}`}>
             {levelLabels[course.level]}
@@ -377,7 +388,13 @@ function CourseCard({ course, onClick }: { course: any; onClick: () => void }) {
         <p className="text-gray-600 text-sm mb-4 line-clamp-2">{course.description}</p>
 
         <div className="flex items-center mb-4">
-          <img src={course.instructor_avatar} alt={course.instructor_name} className="w-8 h-8 rounded-full mr-2" />
+          {course.instructor_avatar && course.instructor_avatar.trim() !== '' ? (
+            <img src={course.instructor_avatar} alt={course.instructor_name} className="w-8 h-8 rounded-full mr-2 object-cover" />
+          ) : (
+            <div className="w-8 h-8 rounded-full mr-2 bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white text-sm font-semibold">
+              {course.instructor_name.charAt(0).toUpperCase()}
+            </div>
+          )}
           <span className="text-sm text-gray-700">{course.instructor_name}</span>
         </div>
 

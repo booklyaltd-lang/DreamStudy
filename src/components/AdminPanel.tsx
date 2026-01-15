@@ -244,11 +244,17 @@ function CoursesManagement() {
           {courses.map((course) => (
             <div key={course.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
               <div className="flex items-center space-x-4">
-                <img
-                  src={course.thumbnail_url}
-                  alt={course.title}
-                  className="w-20 h-20 object-cover rounded-lg"
-                />
+                {course.thumbnail_url && course.thumbnail_url.trim() !== '' ? (
+                  <img
+                    src={course.thumbnail_url}
+                    alt={course.title}
+                    className="w-20 h-20 object-cover rounded-lg"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                    <BookOpen className="h-8 w-8 text-white opacity-80" />
+                  </div>
+                )}
                 <div>
                   <h3 className="font-semibold text-gray-900">{course.title}</h3>
                   <p className="text-sm text-gray-600">{course.instructor_name}</p>
@@ -302,6 +308,7 @@ function CourseForm({ course, onClose }: { course?: any; onClose: () => void }) 
     is_published: course?.is_published || false
   });
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -476,9 +483,20 @@ function CourseForm({ course, onClose }: { course?: any; onClose: () => void }) 
           <ImageUploader
             bucket="course-images"
             currentImage={formData.thumbnail_url}
-            onUploadComplete={(url) => setFormData({ ...formData, thumbnail_url: url })}
+            onUploadStart={() => setUploading(true)}
+            onUploadComplete={(url) => {
+              setFormData({ ...formData, thumbnail_url: url });
+              setUploading(false);
+            }}
             label="Обложка курса"
           />
+          {uploading && (
+            <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                Изображение загружается... Пожалуйста, дождитесь завершения загрузки перед сохранением курса.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -492,10 +510,10 @@ function CourseForm({ course, onClose }: { course?: any; onClose: () => void }) 
         </button>
         <button
           type="submit"
-          disabled={saving}
-          className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+          disabled={saving || uploading}
+          className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          {saving ? 'Сохранение...' : course ? 'Обновить' : 'Создать'}
+          {saving ? 'Сохранение...' : uploading ? 'Ожидание загрузки изображения...' : course ? 'Обновить' : 'Создать'}
         </button>
       </div>
     </form>

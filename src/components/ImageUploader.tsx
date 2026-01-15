@@ -6,6 +6,7 @@ interface ImageUploaderProps {
   bucket: 'course-images' | 'blog-images' | 'avatars' | 'course-materials';
   currentImage?: string;
   onUploadComplete: (url: string, path: string) => void;
+  onUploadStart?: () => void;
   label?: string;
   accept?: string;
 }
@@ -14,6 +15,7 @@ export function ImageUploader({
   bucket,
   currentImage,
   onUploadComplete,
+  onUploadStart,
   label = 'Загрузить изображение',
   accept = 'image/jpeg,image/png,image/webp,image/gif'
 }: ImageUploaderProps) {
@@ -30,6 +32,10 @@ export function ImageUploader({
     setError(null);
     setSuccess(false);
     setUploading(true);
+
+    if (onUploadStart) {
+      onUploadStart();
+    }
 
     const reader = new FileReader();
     reader.onloadend = () => {
