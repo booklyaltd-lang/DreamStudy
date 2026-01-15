@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, Menu, X, User, LogOut, Clock, BarChart3, DollarSign, Facebook, Twitter, Linkedin, Instagram, ArrowRight, Sparkles, Users, Award, TrendingUp, Video, Trophy, Search, Filter, Tag, Calendar, Share2, Check, ArrowLeft, PlayCircle, Lock, CheckCircle, Mail, AlertCircle } from 'lucide-react';
+import { BookOpen, Menu, X, User, LogOut, Clock, BarChart3, DollarSign, Facebook, Twitter, Linkedin, Instagram, ArrowRight, Sparkles, Users, Award, TrendingUp, Video, Trophy, Search, Filter, Tag, Calendar, Share2, Check, ArrowLeft, PlayCircle, Lock, CheckCircle, Mail, AlertCircle, Settings } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { Session, User as AuthUser } from '@supabase/supabase-js';
+import { ImageUploader } from './components/ImageUploader';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-type PageType = 'home' | 'courses' | 'course' | 'blog' | 'blogpost' | 'pricing' | 'dashboard' | 'signin' | 'signup';
+type PageType = 'home' | 'courses' | 'course' | 'blog' | 'blogpost' | 'pricing' | 'dashboard' | 'profile' | 'signin' | 'signup';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
@@ -59,6 +60,8 @@ function App() {
         return <PricingPage onNavigate={handleNavigate} user={user} />;
       case 'dashboard':
         return <DashboardPage onNavigate={handleNavigate} user={user} />;
+      case 'profile':
+        return <ProfilePage onNavigate={handleNavigate} user={user} />;
       case 'signin':
         return <SignInPage onNavigate={handleNavigate} />;
       case 'signup':
@@ -108,6 +111,10 @@ function Header({ onNavigate, currentPage, user, onSignOut }: { onNavigate: (p: 
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
                     <button onClick={() => { onNavigate('dashboard'); setUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Мой кабинет</button>
+                    <button onClick={() => { onNavigate('profile'); setUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2">
+                      <Settings className="h-4 w-4" />
+                      <span>Настройки</span>
+                    </button>
                     <button onClick={onSignOut} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2">
                       <LogOut className="h-4 w-4" />
                       <span>Выйти</span>
@@ -139,6 +146,7 @@ function Header({ onNavigate, currentPage, user, onSignOut }: { onNavigate: (p: 
               {user ? (
                 <>
                   <button onClick={() => { onNavigate('dashboard'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Мой кабинет</button>
+                  <button onClick={() => { onNavigate('profile'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Настройки</button>
                   <button onClick={onSignOut} className="text-left text-base font-medium text-red-600">Выйти</button>
                 </>
               ) : (
@@ -1382,6 +1390,206 @@ function SignUpPage({ onNavigate }: { onNavigate: (p: PageType) => void }) {
                 Войти
               </button>
             </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProfilePage({ onNavigate, user }: { onNavigate: (p: PageType) => void; user: AuthUser | null }) {
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [fullName, setFullName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setProfile(data);
+        setFullName(data.full_name || '');
+        setAvatarUrl(data.avatar_url || '');
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки профиля:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!user) return;
+
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: fullName,
+          avatar_url: avatarUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setMessage({ type: 'success', text: 'Профиль успешно обновлён' });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message || 'Ошибка сохранения' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAvatarUpload = (url: string, path: string) => {
+    setAvatarUrl(url);
+  };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-24 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Пожалуйста, войдите</h2>
+          <button onClick={() => onNavigate('signin')} className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700">
+            Войти
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 pt-24 pb-16">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <button
+            onClick={() => onNavigate('dashboard')}
+            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            <span>Назад к кабинету</span>
+          </button>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Настройки профиля</h1>
+          <p className="text-gray-600 mb-8">Управляйте своей личной информацией</p>
+
+          {message && (
+            <div className={`mb-6 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+              <p className={`text-sm ${message.type === 'success' ? 'text-green-700' : 'text-red-700'}`}>
+                {message.text}
+              </p>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="space-y-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-gray-200 rounded-lg h-20 animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-8">
+              <div>
+                <ImageUploader
+                  bucket="avatars"
+                  currentImage={avatarUrl}
+                  onUploadComplete={handleAvatarUpload}
+                  label="Аватар профиля"
+                  accept="image/jpeg,image/png,image/webp"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email адрес
+                </label>
+                <input
+                  type="email"
+                  value={user.email || ''}
+                  disabled
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                />
+                <p className="mt-1 text-xs text-gray-500">Email нельзя изменить</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Полное имя
+                </label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Введите ваше имя"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+                <button
+                  onClick={() => onNavigate('dashboard')}
+                  className="px-6 py-3 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
+                >
+                  {saving ? 'Сохранение...' : 'Сохранить изменения'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-8 bg-white rounded-xl shadow-sm p-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Информация об аккаунте</h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between py-3 border-b border-gray-100">
+              <span className="text-sm font-medium text-gray-700">ID пользователя</span>
+              <span className="text-sm text-gray-600 font-mono">{user.id}</span>
+            </div>
+            <div className="flex items-center justify-between py-3 border-b border-gray-100">
+              <span className="text-sm font-medium text-gray-700">Дата регистрации</span>
+              <span className="text-sm text-gray-600">
+                {new Date(user.created_at).toLocaleDateString('ru-RU', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </span>
+            </div>
+            <div className="flex items-center justify-between py-3">
+              <span className="text-sm font-medium text-gray-700">Статус email</span>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Подтверждён
+              </span>
+            </div>
           </div>
         </div>
       </div>
