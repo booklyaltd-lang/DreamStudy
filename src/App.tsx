@@ -743,7 +743,7 @@ function CourseDetailPage({ course, onNavigate, user }: { course: any; onNavigat
               <div className="bg-white rounded-xl shadow-lg p-6 text-gray-900">
                 <img src={course.thumbnail_url} alt={course.title} className="w-full h-48 object-cover rounded-lg mb-4" />
                 <div className="text-3xl font-bold mb-2">
-                  {course.price === 0 ? <span className="text-green-600">Бесплатно</span> : <span>${course.price}</span>}
+                  {course.price === 0 ? <span className="text-green-600">Бесплатно</span> : <span>{course.price} ₽</span>}
                 </div>
                 <p className="text-sm text-gray-600 mb-6">
                   {course.required_tier === 'free' ? 'Доступен всем' : `Требуется подписка ${course.required_tier}`}
@@ -818,7 +818,13 @@ function CourseDetailPage({ course, onNavigate, user }: { course: any; onNavigat
             <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
               <h3 className="font-semibold text-gray-900 mb-4">Преподаватель</h3>
               <div className="flex items-center space-x-3 mb-4">
-                <img src={course.instructor_avatar} alt={course.instructor_name} className="w-16 h-16 rounded-full" />
+                {course.instructor_avatar && course.instructor_avatar.trim() !== '' ? (
+                  <img src={course.instructor_avatar} alt={course.instructor_name} className="w-16 h-16 rounded-full object-cover" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-2xl font-bold">
+                    {course.instructor_name?.charAt(0).toUpperCase() || 'П'}
+                  </div>
+                )}
                 <div>
                   <h4 className="font-semibold text-gray-900">{course.instructor_name}</h4>
                   <p className="text-sm text-gray-600">Эксперт-преподаватель</p>
