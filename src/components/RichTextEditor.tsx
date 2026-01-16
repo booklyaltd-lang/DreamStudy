@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { Bold, Italic, List, ListOrdered, Link, Image, Video, Code, Upload, ChevronDown } from 'lucide-react';
+import { Bold, Italic, List, ListOrdered, Link, Image, Video, Code, Upload, ChevronDown, FileCode } from 'lucide-react';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -62,6 +62,68 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start, newText.length - after.length);
+    }, 0);
+  };
+
+  const insertYouTubeVideo = () => {
+    const url = prompt('Вставьте ссылку на YouTube видео (например: https://www.youtube.com/watch?v=VIDEO_ID или https://youtu.be/VIDEO_ID):');
+    if (!url) return;
+
+    let videoId = '';
+
+    if (url.includes('youtube.com/watch?v=')) {
+      videoId = url.split('watch?v=')[1]?.split('&')[0];
+    } else if (url.includes('youtu.be/')) {
+      videoId = url.split('youtu.be/')[1]?.split('?')[0];
+    } else if (url.includes('youtube.com/embed/')) {
+      videoId = url.split('embed/')[1]?.split('?')[0];
+    } else if (url.includes('youtube-nocookie.com/embed/')) {
+      videoId = url.split('embed/')[1]?.split('?')[0];
+    } else {
+      videoId = url.trim();
+    }
+
+    if (!videoId) {
+      alert('Не удалось определить ID видео. Пожалуйста, проверьте ссылку.');
+      return;
+    }
+
+    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const before = value.substring(0, start);
+    const after = value.substring(end);
+
+    const embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}`;
+    const newText = `${before}<div class="aspect-video my-4"><iframe src="${embedUrl}" class="w-full h-full rounded-lg" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>${after}`;
+
+    onChange(newText);
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(newText.length - after.length, newText.length - after.length);
+    }, 0);
+  };
+
+  const insertCustomHTML = () => {
+    const html = prompt('Вставьте HTML код:');
+    if (!html) return;
+
+    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const before = value.substring(0, start);
+    const after = value.substring(end);
+
+    const newText = `${before}${html}${after}`;
+
+    onChange(newText);
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + html.length, start + html.length);
     }, 0);
   };
 
@@ -215,11 +277,15 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
                 {uploading ? <Upload className="h-4 w-4 animate-spin" /> : <Image className="h-4 w-4" />}
               </button>
             </div>
-            <button type="button" onClick={() => insertTag('video')} className="p-2 hover:bg-gray-200 rounded" title="Видео (YouTube)">
+            <button type="button" onClick={insertYouTubeVideo} className="p-2 hover:bg-gray-200 rounded" title="Видео (YouTube)">
               <Video className="h-4 w-4" />
             </button>
+            <div className="w-px h-6 bg-gray-300 mx-1" />
             <button type="button" onClick={() => insertTag('code', ' class="bg-gray-100 px-2 py-1 rounded"')} className="p-2 hover:bg-gray-200 rounded" title="Код">
               <Code className="h-4 w-4" />
+            </button>
+            <button type="button" onClick={insertCustomHTML} className="p-2 hover:bg-gray-200 rounded" title="Вставить HTML">
+              <FileCode className="h-4 w-4" />
             </button>
           </div>
 
@@ -261,8 +327,8 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
           <li>• Выделите текст и нажмите кнопку для форматирования</li>
           <li>• Выберите размер изображения (25%, 50%, 75%, 100%) перед загрузкой</li>
           <li>• Нажмите на иконку изображения для загрузки с компьютера</li>
-          <li>• Для YouTube видео используйте формат: https://www.youtube-nocookie.com/embed/VIDEO_ID</li>
-          <li>• Для HTML кода можно вставить напрямую в режиме редактора</li>
+          <li>• Кнопка видео откроет диалог для вставки ссылки на YouTube (поддерживаются любые форматы YouTube ссылок)</li>
+          <li>• Кнопка HTML (&lt;/&gt;) откроет диалог для вставки произвольного HTML кода</li>
         </ul>
       </div>
     </div>
