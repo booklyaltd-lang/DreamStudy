@@ -867,6 +867,7 @@ function CourseDetailPage({ course, onNavigate, user }: { course: any; onNavigat
 }
 
 function BlogPage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }) {
+  const { profile } = useAuth();
   const [posts, setPosts] = useState<any[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -875,6 +876,8 @@ function BlogPage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }
   const [categories, setCategories] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+
+  const userTier = profile?.subscription_tier || 'free';
 
   useEffect(() => {
     fetchPosts();
@@ -967,7 +970,12 @@ function BlogPage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {paginatedPosts.map((post) => (
-                <BlogCard key={post.id} post={post} onClick={() => onNavigate('blogpost', post)} />
+                <BlogCard
+                  key={post.id}
+                  post={post}
+                  userTier={userTier}
+                  onClick={() => onNavigate('blogpost', post)}
+                />
               ))}
             </div>
             {totalPages > 1 && (
@@ -984,25 +992,76 @@ function BlogPage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }
   );
 }
 
-function BlogCard({ post, onClick }: { post: any; onClick: () => void }) {
+function BlogCard({ post, userTier, onClick }: { post: any; userTier: string; onClick: () => void }) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  const canAccess = () => {
+    const requiredTier = post.required_tier || 'free';
+    if (requiredTier === 'free') return true;
+    if (requiredTier === 'basic') return userTier === 'basic' || userTier === 'premium';
+    if (requiredTier === 'premium') return userTier === 'premium';
+    return false;
+  };
+
+  const hasAccess = canAccess();
+  const requiredTier = post.required_tier || 'free';
+
+  const tierLabels: Record<string, string> = {
+    free: 'Бесплатно',
+    basic: 'Basic',
+    premium: 'Premium',
+  };
+
   return (
-    <article onClick={onClick} className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer group">
+    <article
+      onClick={hasAccess ? onClick : undefined}
+      className={`bg-white rounded-xl shadow-sm transition-all duration-300 overflow-hidden relative ${
+        hasAccess ? 'hover:shadow-lg cursor-pointer group' : 'cursor-not-allowed opacity-90'
+      }`}
+    >
       <div className="relative h-56 overflow-hidden">
-        <img src={post.cover_image_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+        <img
+          src={post.cover_image_url}
+          alt={post.title}
+          className={`w-full h-full object-cover transition-transform duration-300 ${
+            hasAccess ? 'group-hover:scale-105' : ''
+          }`}
+        />
         <div className="absolute top-4 left-4">
           <span className="px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full">
             {post.category}
           </span>
         </div>
+        {requiredTier !== 'free' && (
+          <div className="absolute top-4 right-4">
+            <span className={`px-3 py-1 text-white text-xs font-semibold rounded-full ${
+              requiredTier === 'premium' ? 'bg-purple-600' : 'bg-orange-600'
+            }`}>
+              {tierLabels[requiredTier]}
+            </span>
+          </div>
+        )}
+        {!hasAccess && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div className="text-center">
+              <Lock className="h-12 w-12 text-white mx-auto mb-2" />
+              <p className="text-white font-semibold text-sm">
+                Требуется подписка {tierLabels[requiredTier]}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="p-6">
-        <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">
+        <h3
+          className={`text-xl font-bold text-gray-900 mb-3 transition-colors line-clamp-2 ${
+            hasAccess ? 'group-hover:text-blue-600' : ''
+          }`}
+        >
           {post.title}
         </h3>
         <p className="text-gray-600 text-sm mb-4 line-clamp-3">{post.excerpt}</p>
@@ -1025,9 +1084,29 @@ function BlogCard({ post, onClick }: { post: any; onClick: () => void }) {
 }
 
 function BlogPostPage({ post, onNavigate }: { post: any; onNavigate: (p: PageType) => void }) {
+  const { profile } = useAuth();
+  const userTier = profile?.subscription_tier || 'free';
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('ru-RU', { month: 'long', day: 'numeric', year: 'numeric' });
+  };
+
+  const canAccess = () => {
+    const requiredTier = post.required_tier || 'free';
+    if (requiredTier === 'free') return true;
+    if (requiredTier === 'basic') return userTier === 'basic' || userTier === 'premium';
+    if (requiredTier === 'premium') return userTier === 'premium';
+    return false;
+  };
+
+  const hasAccess = canAccess();
+  const requiredTier = post.required_tier || 'free';
+
+  const tierLabels: Record<string, string> = {
+    free: 'Бесплатно',
+    basic: 'Basic',
+    premium: 'Premium',
   };
 
   return (
@@ -1038,10 +1117,17 @@ function BlogPostPage({ post, onNavigate }: { post: any; onNavigate: (p: PageTyp
           <span>Назад к блогу</span>
         </button>
 
-        <div className="mb-6">
+        <div className="mb-6 flex items-center space-x-3">
           <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-semibold rounded-full">
             {post.category}
           </span>
+          {requiredTier !== 'free' && (
+            <span className={`inline-block px-3 py-1 text-white text-sm font-semibold rounded-full ${
+              requiredTier === 'premium' ? 'bg-purple-600' : 'bg-orange-600'
+            }`}>
+              {tierLabels[requiredTier]}
+            </span>
+          )}
         </div>
 
         <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6 leading-tight">
@@ -1063,37 +1149,60 @@ function BlogPostPage({ post, onNavigate }: { post: any; onNavigate: (p: PageTyp
           <img src={post.cover_image_url} alt={post.title} className="w-full h-full object-cover" />
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm p-8 sm:p-12 mb-8">
-          <p className="text-xl text-gray-700 leading-relaxed mb-6">{post.excerpt}</p>
-          <div className="text-gray-700 leading-relaxed whitespace-pre-line">
-            {post.content}
+        {!hasAccess ? (
+          <div className="bg-white rounded-2xl shadow-sm p-8 sm:p-12 mb-8">
+            <div className="text-center py-12">
+              <Lock className="h-16 w-16 text-gray-400 mx-auto mb-6" />
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                Эта статья доступна только для подписчиков {tierLabels[requiredTier]}
+              </h2>
+              <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+                Получите доступ к этой статье и множеству других материалов, оформив подписку {tierLabels[requiredTier]}.
+              </p>
+              <button
+                onClick={() => onNavigate('pricing')}
+                className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl inline-flex items-center space-x-2"
+              >
+                <span>Посмотреть тарифы</span>
+                <ArrowRight className="h-5 w-5" />
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <>
+            <div className="bg-white rounded-2xl shadow-sm p-8 sm:p-12 mb-8">
+              <p className="text-xl text-gray-700 leading-relaxed mb-6">{post.excerpt}</p>
+              <div className="text-gray-700 leading-relaxed whitespace-pre-line">
+                {post.content}
+              </div>
+            </div>
 
-        {post.tags && post.tags.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
-            <div className="flex items-center space-x-2 mb-4">
-              <Tag className="h-5 w-5 text-gray-600" />
-              <span className="font-semibold text-gray-900">Теги</span>
+            {post.tags && post.tags.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
+                <div className="flex items-center space-x-2 mb-4">
+                  <Tag className="h-5 w-5 text-gray-600" />
+                  <span className="font-semibold text-gray-900">Теги</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {post.tags.map((tag: string) => (
+                    <span key={tag} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full hover:bg-gray-200 transition-colors cursor-pointer">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-white text-center">
+              <Share2 className="h-12 w-12 mx-auto mb-4" />
+              <h3 className="text-2xl font-bold mb-2">Понравилась статья?</h3>
+              <p className="text-blue-100 mb-6">Поделитесь ею с друзьями и помогите другим учиться</p>
+              <button className="px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors">
+                Поделиться статьёй
+              </button>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {post.tags.map((tag: string) => (
-                <span key={tag} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full hover:bg-gray-200 transition-colors cursor-pointer">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
+          </>
         )}
-
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-white text-center">
-          <Share2 className="h-12 w-12 mx-auto mb-4" />
-          <h3 className="text-2xl font-bold mb-2">Понравилась статья?</h3>
-          <p className="text-blue-100 mb-6">Поделитесь ею с друзьями и помогите другим учиться</p>
-          <button className="px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors">
-            Поделиться статьёй
-          </button>
-        </div>
       </article>
     </div>
   );
