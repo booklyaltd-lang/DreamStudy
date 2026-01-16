@@ -11,6 +11,7 @@ import UserProfile from './components/UserProfile';
 import CourseViewer from './components/CourseViewer';
 import CoursesList from './components/CoursesList';
 import SubscriptionPlans from './components/SubscriptionPlans';
+import { supabase } from './lib/supabase';
 
 type PageType = 'home' | 'courses' | 'course' | 'blog' | 'blogpost' | 'pricing' | 'dashboard' | 'profile' | 'admin' | 'admin-setup' | 'signin' | 'signup' | 'my-courses' | 'course-viewer' | 'subscriptions' | 'user-profile';
 
