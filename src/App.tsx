@@ -7,13 +7,17 @@ import { AdminPanel } from './components/AdminPanel';
 import { Pagination } from './components/Pagination';
 import { Breadcrumbs } from './components/Breadcrumbs';
 import { useSiteSettings } from './contexts/SiteSettingsContext';
+import UserProfile from './components/UserProfile';
+import CourseViewer from './components/CourseViewer';
+import CoursesList from './components/CoursesList';
+import SubscriptionPlans from './components/SubscriptionPlans';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-type PageType = 'home' | 'courses' | 'course' | 'blog' | 'blogpost' | 'pricing' | 'dashboard' | 'profile' | 'admin' | 'admin-setup' | 'signin' | 'signup';
+type PageType = 'home' | 'courses' | 'course' | 'blog' | 'blogpost' | 'pricing' | 'dashboard' | 'profile' | 'admin' | 'admin-setup' | 'signin' | 'signup' | 'my-courses' | 'course-viewer' | 'subscriptions' | 'user-profile';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
@@ -74,6 +78,14 @@ function App() {
         return <SignInPage onNavigate={handleNavigate} />;
       case 'signup':
         return <SignUpPage onNavigate={handleNavigate} />;
+      case 'user-profile':
+        return <UserProfile />;
+      case 'my-courses':
+        return <CoursesList onCourseSelect={(courseId) => handleNavigate('course-viewer', courseId)} />;
+      case 'course-viewer':
+        return <CourseViewer courseId={pageData} onBack={() => handleNavigate('my-courses')} />;
+      case 'subscriptions':
+        return <SubscriptionPlans />;
       default:
         return <HomePage onNavigate={handleNavigate} />;
     }
@@ -123,6 +135,18 @@ function Header({ onNavigate, currentPage, user, onSignOut }: { onNavigate: (p: 
                 </button>
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+                    <button onClick={() => { onNavigate('user-profile'); setUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2">
+                      <User className="h-4 w-4" />
+                      <span>Мой профиль</span>
+                    </button>
+                    <button onClick={() => { onNavigate('my-courses'); setUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2">
+                      <BookOpen className="h-4 w-4" />
+                      <span>Мои курсы</span>
+                    </button>
+                    <button onClick={() => { onNavigate('subscriptions'); setUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2">
+                      <Award className="h-4 w-4" />
+                      <span>Подписка</span>
+                    </button>
                     <button onClick={() => { onNavigate('dashboard'); setUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Мой кабинет</button>
                     <button onClick={() => { onNavigate('profile'); setUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2">
                       <Settings className="h-4 w-4" />
@@ -158,6 +182,9 @@ function Header({ onNavigate, currentPage, user, onSignOut }: { onNavigate: (p: 
               ))}
               {user ? (
                 <>
+                  <button onClick={() => { onNavigate('user-profile'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Мой профиль</button>
+                  <button onClick={() => { onNavigate('my-courses'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Мои курсы</button>
+                  <button onClick={() => { onNavigate('subscriptions'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Подписка</button>
                   <button onClick={() => { onNavigate('dashboard'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Мой кабинет</button>
                   <button onClick={() => { onNavigate('profile'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Настройки</button>
                   <button onClick={onSignOut} className="text-left text-base font-medium text-red-600">Выйти</button>
