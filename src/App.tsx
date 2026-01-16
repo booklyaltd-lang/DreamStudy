@@ -1,45 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { BookOpen, Menu, X, User, LogOut, Clock, BarChart3, Facebook, Twitter, Linkedin, Instagram, ArrowRight, Sparkles, Video, Trophy, Search, Filter, Tag, Calendar, Share2, Check, ArrowLeft, PlayCircle, Lock, CheckCircle, Mail, AlertCircle, Settings, Shield, TrendingUp, Award, Youtube, Send, MessageCircle, Phone } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
-import { Session, User as AuthUser } from '@supabase/supabase-js';
+import { User as AuthUser } from '@supabase/supabase-js';
 import { ImageUploader } from './components/ImageUploader';
 import { AdminPanel } from './components/AdminPanel';
 import { Pagination } from './components/Pagination';
 import { Breadcrumbs } from './components/Breadcrumbs';
 import { useSiteSettings } from './contexts/SiteSettingsContext';
+import { useAuth } from './contexts/AuthContext';
 import UserProfile from './components/UserProfile';
 import CourseViewer from './components/CourseViewer';
 import CoursesList from './components/CoursesList';
 import SubscriptionPlans from './components/SubscriptionPlans';
 
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
-
 type PageType = 'home' | 'courses' | 'course' | 'blog' | 'blogpost' | 'pricing' | 'dashboard' | 'profile' | 'admin' | 'admin-setup' | 'signin' | 'signup' | 'my-courses' | 'course-viewer' | 'subscriptions' | 'user-profile';
 
 function App() {
+  const { user, signOut } = useAuth();
   const [currentPage, setCurrentPage] = useState<PageType>('home');
   const [pageData, setPageData] = useState<any>(null);
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const handleNavigate = (page: PageType, data?: any) => {
     setCurrentPage(page);
@@ -47,9 +25,15 @@ function App() {
     window.scrollTo(0, 0);
   };
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    handleNavigate('home');
+  const handleSignOut = async () => {
+    try {
+      console.log('Signing out...');
+      await signOut();
+      console.log('Signed out successfully');
+      handleNavigate('home');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const renderPage = () => {
@@ -93,7 +77,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header onNavigate={handleNavigate} currentPage={currentPage} user={user} onSignOut={signOut} />
+      <Header onNavigate={handleNavigate} currentPage={currentPage} user={user} onSignOut={handleSignOut} />
       <main>{renderPage()}</main>
       <Footer onNavigate={handleNavigate} />
     </div>
@@ -148,7 +132,10 @@ function Header({ onNavigate, currentPage, user, onSignOut }: { onNavigate: (p: 
                       <Settings className="h-4 w-4" />
                       <span>Настройки</span>
                     </button>
-                    <button onClick={() => { onSignOut(); setUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2">
+                    <button onClick={async () => {
+                      setUserMenuOpen(false);
+                      await onSignOut();
+                    }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2">
                       <LogOut className="h-4 w-4" />
                       <span>Выйти</span>
                     </button>
@@ -182,7 +169,10 @@ function Header({ onNavigate, currentPage, user, onSignOut }: { onNavigate: (p: 
                   <button onClick={() => { onNavigate('subscriptions'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Подписка</button>
                   <button onClick={() => { onNavigate('dashboard'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Мой кабинет</button>
                   <button onClick={() => { onNavigate('profile'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Настройки</button>
-                  <button onClick={() => { onSignOut(); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-red-600">Выйти</button>
+                  <button onClick={async () => {
+                    setMobileMenuOpen(false);
+                    await onSignOut();
+                  }} className="text-left text-base font-medium text-red-600">Выйти</button>
                 </>
               ) : (
                 <>
