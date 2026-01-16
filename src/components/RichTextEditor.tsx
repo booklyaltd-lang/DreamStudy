@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { Bold, Italic, List, ListOrdered, Link, Image, Video, Code, Upload } from 'lucide-react';
+import { Bold, Italic, List, ListOrdered, Link, Image, Video, Code, Upload, ChevronDown } from 'lucide-react';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -13,10 +13,24 @@ interface RichTextEditorProps {
   label?: string;
 }
 
+type ImageSize = '25' | '50' | '75' | '100';
+
 export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) {
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
   const [uploading, setUploading] = useState(false);
+  const [showImageSizeMenu, setShowImageSizeMenu] = useState(false);
+  const [imageSize, setImageSize] = useState<ImageSize>('100');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const getImageWidthClass = (size: ImageSize) => {
+    switch (size) {
+      case '25': return 'w-1/4';
+      case '50': return 'w-1/2';
+      case '75': return 'w-3/4';
+      case '100': return 'w-full';
+      default: return 'w-full';
+    }
+  };
 
   const insertTag = (tag: string, attributes?: string) => {
     const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
@@ -30,7 +44,8 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
 
     let newText = '';
     if (tag === 'img') {
-      newText = `${before}<img src="${selectedText ||'url'}" alt="описание" class="w-full rounded-lg my-4" />${after}`;
+      const widthClass = getImageWidthClass(imageSize);
+      newText = `${before}<img src="${selectedText ||'url'}" alt="описание" class="${widthClass} rounded-lg my-4" />${after}`;
     } else if (tag === 'video') {
       newText = `${before}<div class="aspect-video my-4"><iframe src="${selectedText || 'https://youtube.com/embed/VIDEO_ID'}" class="w-full h-full rounded-lg" frameborder="0" allowfullscreen></iframe></div>${after}`;
     } else if (tag === 'a') {
@@ -97,7 +112,8 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
         const end = textarea.selectionEnd;
         const before = value.substring(0, start);
         const after = value.substring(end);
-        const newText = `${before}<img src="${publicUrl}" alt="Изображение" class="w-full rounded-lg my-4" />${after}`;
+        const widthClass = getImageWidthClass(imageSize);
+        const newText = `${before}<img src="${publicUrl}" alt="Изображение" class="${widthClass} rounded-lg my-4" />${after}`;
         onChange(newText);
         setTimeout(() => {
           textarea.focus();
@@ -149,23 +165,56 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
             <button type="button" onClick={() => insertTag('a')} className="p-2 hover:bg-gray-200 rounded" title="Ссылка">
               <Link className="h-4 w-4" />
             </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-              id="rich-editor-image-upload"
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="p-2 hover:bg-gray-200 rounded disabled:opacity-50"
-              title="Загрузить изображение"
-            >
-              {uploading ? <Upload className="h-4 w-4 animate-spin" /> : <Image className="h-4 w-4" />}
-            </button>
+            <div className="w-px h-6 bg-gray-300 mx-1" />
+            <div className="relative flex items-center gap-1">
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowImageSizeMenu(!showImageSizeMenu)}
+                  className="px-2 py-2 hover:bg-gray-200 rounded text-xs font-medium flex items-center gap-1"
+                  title="Размер изображения"
+                >
+                  {imageSize}%
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+                {showImageSizeMenu && (
+                  <div className="absolute top-full mt-1 left-0 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-[80px]">
+                    {(['25', '50', '75', '100'] as ImageSize[]).map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => {
+                          setImageSize(size);
+                          setShowImageSizeMenu(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                          imageSize === size ? 'bg-blue-50 text-blue-600 font-medium' : ''
+                        }`}
+                      >
+                        {size}%
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+                id="rich-editor-image-upload"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="p-2 hover:bg-gray-200 rounded disabled:opacity-50"
+                title="Загрузить изображение"
+              >
+                {uploading ? <Upload className="h-4 w-4 animate-spin" /> : <Image className="h-4 w-4" />}
+              </button>
+            </div>
             <button type="button" onClick={() => insertTag('video')} className="p-2 hover:bg-gray-200 rounded" title="Видео (YouTube)">
               <Video className="h-4 w-4" />
             </button>
@@ -210,6 +259,7 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
         <p className="font-medium mb-1">Подсказки:</p>
         <ul className="space-y-1 text-xs">
           <li>• Выделите текст и нажмите кнопку для форматирования</li>
+          <li>• Выберите размер изображения (25%, 50%, 75%, 100%) перед загрузкой</li>
           <li>• Нажмите на иконку изображения для загрузки с компьютера</li>
           <li>• Для YouTube видео используйте формат: https://youtube.com/embed/VIDEO_ID</li>
           <li>• Для HTML кода можно вставить напрямую в режиме редактора</li>

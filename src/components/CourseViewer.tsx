@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { CheckCircle, Lock, PlayCircle, ArrowLeft, Clock } from 'lucide-react';
+import { CheckCircle, Lock, ArrowLeft, Clock, PlayCircle } from 'lucide-react';
 
 interface Lesson {
   id: string;
@@ -220,7 +220,7 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
           <div className="lg:col-span-2">
             {selectedLesson ? (
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                {selectedLesson.video_url ? (
+                {selectedLesson.video_url && (
                   <div className="aspect-video bg-slate-900">
                     <video
                       src={selectedLesson.video_url}
@@ -228,13 +228,6 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
                       className="w-full h-full"
                       onEnded={() => markLessonComplete(selectedLesson.id)}
                     />
-                  </div>
-                ) : (
-                  <div className="aspect-video bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
-                    <div className="text-center">
-                      <PlayCircle className="w-16 h-16 text-slate-400 mx-auto mb-3" />
-                      <p className="text-slate-600 font-medium">Видео будет добавлено позже</p>
-                    </div>
                   </div>
                 )}
                 <div className="p-6">
