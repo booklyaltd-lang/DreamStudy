@@ -32,7 +32,10 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
     }
   };
 
-  const insertTag = (tag: string, attributes?: string) => {
+  const insertTag = (e: React.MouseEvent, tag: string, attributes?: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
     if (!textarea) return;
 
@@ -65,65 +68,75 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
     }, 0);
   };
 
-  const insertYouTubeVideo = () => {
-    const url = prompt('Вставьте ссылку на YouTube видео (например: https://www.youtube.com/watch?v=VIDEO_ID или https://youtu.be/VIDEO_ID):');
-    if (!url) return;
+  const insertYouTubeVideo = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-    let videoId = '';
-
-    if (url.includes('youtube.com/watch?v=')) {
-      videoId = url.split('watch?v=')[1]?.split('&')[0];
-    } else if (url.includes('youtu.be/')) {
-      videoId = url.split('youtu.be/')[1]?.split('?')[0];
-    } else if (url.includes('youtube.com/embed/')) {
-      videoId = url.split('embed/')[1]?.split('?')[0];
-    } else if (url.includes('youtube-nocookie.com/embed/')) {
-      videoId = url.split('embed/')[1]?.split('?')[0];
-    } else {
-      videoId = url.trim();
-    }
-
-    if (!videoId) {
-      alert('Не удалось определить ID видео. Пожалуйста, проверьте ссылку.');
-      return;
-    }
-
-    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const before = value.substring(0, start);
-    const after = value.substring(end);
-
-    const embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}`;
-    const newText = `${before}<div class="aspect-video my-4"><iframe src="${embedUrl}" class="w-full h-full rounded-lg" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>${after}`;
-
-    onChange(newText);
     setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(newText.length - after.length, newText.length - after.length);
+      const url = prompt('Вставьте ссылку на YouTube видео (например: https://www.youtube.com/watch?v=VIDEO_ID или https://youtu.be/VIDEO_ID):');
+      if (!url) return;
+
+      let videoId = '';
+
+      if (url.includes('youtube.com/watch?v=')) {
+        videoId = url.split('watch?v=')[1]?.split('&')[0];
+      } else if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/')[1]?.split('?')[0];
+      } else if (url.includes('youtube.com/embed/')) {
+        videoId = url.split('embed/')[1]?.split('?')[0];
+      } else if (url.includes('youtube-nocookie.com/embed/')) {
+        videoId = url.split('embed/')[1]?.split('?')[0];
+      } else {
+        videoId = url.trim();
+      }
+
+      if (!videoId) {
+        alert('Не удалось определить ID видео. Пожалуйста, проверьте ссылку.');
+        return;
+      }
+
+      const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const before = value.substring(0, start);
+      const after = value.substring(end);
+
+      const embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}`;
+      const newText = `${before}<div class="aspect-video my-4"><iframe src="${embedUrl}" class="w-full h-full rounded-lg" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>${after}`;
+
+      onChange(newText);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(newText.length - after.length, newText.length - after.length);
+      }, 0);
     }, 0);
   };
 
-  const insertCustomHTML = () => {
-    const html = prompt('Вставьте HTML код:');
-    if (!html) return;
+  const insertCustomHTML = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const before = value.substring(0, start);
-    const after = value.substring(end);
-
-    const newText = `${before}${html}${after}`;
-
-    onChange(newText);
     setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + html.length, start + html.length);
+      const html = prompt('Вставьте HTML код:');
+      if (!html) return;
+
+      const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const before = value.substring(0, start);
+      const after = value.substring(end);
+
+      const newText = `${before}${html}${after}`;
+
+      onChange(newText);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + html.length, start + html.length);
+      }, 0);
     }, 0);
   };
 
@@ -203,28 +216,28 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
       <div className="border border-gray-300 rounded-lg overflow-hidden">
         <div className="bg-gray-50 border-b border-gray-300 p-2 flex items-center justify-between">
           <div className="flex items-center space-x-1">
-            <button type="button" onClick={() => insertTag('strong')} className="p-2 hover:bg-gray-200 rounded" title="Жирный">
+            <button type="button" onClick={(e) => insertTag(e, 'strong')} className="p-2 hover:bg-gray-200 rounded" title="Жирный">
               <Bold className="h-4 w-4" />
             </button>
-            <button type="button" onClick={() => insertTag('em')} className="p-2 hover:bg-gray-200 rounded" title="Курсив">
+            <button type="button" onClick={(e) => insertTag(e, 'em')} className="p-2 hover:bg-gray-200 rounded" title="Курсив">
               <Italic className="h-4 w-4" />
             </button>
             <div className="w-px h-6 bg-gray-300 mx-1" />
-            <button type="button" onClick={() => insertTag('h2', ' class="text-2xl font-bold my-4"')} className="px-3 py-2 hover:bg-gray-200 rounded text-sm font-medium">
+            <button type="button" onClick={(e) => insertTag(e, 'h2', ' class="text-2xl font-bold my-4"')} className="px-3 py-2 hover:bg-gray-200 rounded text-sm font-medium">
               H2
             </button>
-            <button type="button" onClick={() => insertTag('h3', ' class="text-xl font-semibold my-3"')} className="px-3 py-2 hover:bg-gray-200 rounded text-sm font-medium">
+            <button type="button" onClick={(e) => insertTag(e, 'h3', ' class="text-xl font-semibold my-3"')} className="px-3 py-2 hover:bg-gray-200 rounded text-sm font-medium">
               H3
             </button>
             <div className="w-px h-6 bg-gray-300 mx-1" />
-            <button type="button" onClick={() => insertTag('ul')} className="p-2 hover:bg-gray-200 rounded" title="Список">
+            <button type="button" onClick={(e) => insertTag(e, 'ul')} className="p-2 hover:bg-gray-200 rounded" title="Список">
               <List className="h-4 w-4" />
             </button>
-            <button type="button" onClick={() => insertTag('ol')} className="p-2 hover:bg-gray-200 rounded" title="Нумерованный список">
+            <button type="button" onClick={(e) => insertTag(e, 'ol')} className="p-2 hover:bg-gray-200 rounded" title="Нумерованный список">
               <ListOrdered className="h-4 w-4" />
             </button>
             <div className="w-px h-6 bg-gray-300 mx-1" />
-            <button type="button" onClick={() => insertTag('a')} className="p-2 hover:bg-gray-200 rounded" title="Ссылка">
+            <button type="button" onClick={(e) => insertTag(e, 'a')} className="p-2 hover:bg-gray-200 rounded" title="Ссылка">
               <Link className="h-4 w-4" />
             </button>
             <div className="w-px h-6 bg-gray-300 mx-1" />
@@ -232,7 +245,10 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => setShowImageSizeMenu(!showImageSizeMenu)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowImageSizeMenu(!showImageSizeMenu);
+                  }}
                   className="px-2 py-2 hover:bg-gray-200 rounded text-xs font-medium flex items-center gap-1"
                   title="Размер изображения"
                 >
@@ -245,7 +261,8 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
                       <button
                         key={size}
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
                           setImageSize(size);
                           setShowImageSizeMenu(false);
                         }}
@@ -269,7 +286,10 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
               />
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }}
                 disabled={uploading}
                 className="p-2 hover:bg-gray-200 rounded disabled:opacity-50"
                 title="Загрузить изображение"
@@ -281,7 +301,7 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
               <Video className="h-4 w-4" />
             </button>
             <div className="w-px h-6 bg-gray-300 mx-1" />
-            <button type="button" onClick={() => insertTag('code', ' class="bg-gray-100 px-2 py-1 rounded"')} className="p-2 hover:bg-gray-200 rounded" title="Код">
+            <button type="button" onClick={(e) => insertTag(e, 'code', ' class="bg-gray-100 px-2 py-1 rounded"')} className="p-2 hover:bg-gray-200 rounded" title="Код">
               <Code className="h-4 w-4" />
             </button>
             <button type="button" onClick={insertCustomHTML} className="p-2 hover:bg-gray-200 rounded" title="Вставить HTML">
