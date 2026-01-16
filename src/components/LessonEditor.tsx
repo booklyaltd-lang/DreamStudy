@@ -42,7 +42,8 @@ export function LessonEditor({ lesson, courseId, onClose }: LessonEditorProps) {
     duration_minutes: lesson?.duration_minutes || 0,
     video_url: lesson?.video_url || '',
     video_type: lesson?.video_type || 'youtube',
-    is_published: lesson?.is_published || false
+    is_published: lesson?.is_published || false,
+    is_free_preview: lesson?.is_free_preview || false
   });
   const [saving, setSaving] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
@@ -164,6 +165,19 @@ export function LessonEditor({ lesson, courseId, onClose }: LessonEditorProps) {
               <option value="draft">Черновик</option>
               <option value="published">Опубликован</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Доступ</label>
+            <label className="flex items-center space-x-3 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+              <input
+                type="checkbox"
+                checked={formData.is_free_preview}
+                onChange={(e) => setFormData({ ...formData, is_free_preview: e.target.checked })}
+                className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">Бесплатный превью</span>
+            </label>
           </div>
 
           <div className="col-span-2">

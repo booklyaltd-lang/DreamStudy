@@ -146,6 +146,12 @@ export function LessonsManagement({ course, onBack }: LessonsManagementProps) {
                         <span className="capitalize">{lesson.video_type}</span>
                       </span>
                     )}
+                    {lesson.is_free_preview && (
+                      <span className="flex items-center space-x-1 text-green-600 font-medium">
+                        <Eye className="h-4 w-4" />
+                        <span>Бесплатный превью</span>
+                      </span>
+                    )}
                     <span className="text-gray-400">slug: {lesson.slug}</span>
                   </div>
                 </div>

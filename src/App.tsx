@@ -785,31 +785,38 @@ function CourseDetailPage({ course, onNavigate, user }: { course: any; onNavigat
             <div className="bg-white rounded-xl shadow-sm p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Программа курса</h2>
               <div className="space-y-3">
-                {lessons.map((lesson, index) => (
-                  <div key={lesson.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-semibold text-gray-600">
-                        {index + 1}
+                {lessons.map((lesson, index) => {
+                  const canAccess = lesson.is_free_preview || isEnrolled;
+                  return (
+                    <div
+                      key={lesson.id}
+                      onClick={() => canAccess && onNavigate('course-viewer', course.id)}
+                      className={`flex items-center justify-between p-4 border border-gray-200 rounded-lg transition-colors ${canAccess ? 'hover:border-blue-300 cursor-pointer hover:bg-blue-50' : 'opacity-75'}`}
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-semibold text-gray-600">
+                          {index + 1}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{lesson.title}</h3>
+                          <p className="text-sm text-gray-500">{lesson.duration_minutes} минут</p>
+                        </div>
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900">{lesson.title}</h3>
-                        <p className="text-sm text-gray-500">{lesson.duration_minutes} минут</p>
+                        {lesson.is_free_preview ? (
+                          <span className="flex items-center space-x-1 text-green-600 text-sm font-medium">
+                            <PlayCircle className="h-4 w-4" />
+                            <span>Превью</span>
+                          </span>
+                        ) : !isEnrolled ? (
+                          <Lock className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <PlayCircle className="h-5 w-5 text-blue-600" />
+                        )}
                       </div>
                     </div>
-                    <div>
-                      {lesson.is_free_preview ? (
-                        <span className="flex items-center space-x-1 text-green-600 text-sm font-medium">
-                          <PlayCircle className="h-4 w-4" />
-                          <span>Превью</span>
-                        </span>
-                      ) : !isEnrolled ? (
-                        <Lock className="h-5 w-5 text-gray-400" />
-                      ) : (
-                        <PlayCircle className="h-5 w-5 text-blue-600" />
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
