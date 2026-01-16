@@ -47,7 +47,7 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
       const widthClass = getImageWidthClass(imageSize);
       newText = `${before}<img src="${selectedText ||'url'}" alt="описание" class="${widthClass} rounded-lg my-4" />${after}`;
     } else if (tag === 'video') {
-      newText = `${before}<div class="aspect-video my-4"><iframe src="${selectedText || 'https://youtube.com/embed/VIDEO_ID'}" class="w-full h-full rounded-lg" frameborder="0" allowfullscreen></iframe></div>${after}`;
+      newText = `${before}<div class="aspect-video my-4"><iframe src="${selectedText || 'https://www.youtube-nocookie.com/embed/VIDEO_ID'}" class="w-full h-full rounded-lg" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>${after}`;
     } else if (tag === 'a') {
       newText = `${before}<a href="${selectedText || 'url'}" class="text-blue-600 hover:underline">${selectedText || 'текст ссылки'}</a>${after}`;
     } else if (tag === 'ul' || tag === 'ol') {
@@ -261,7 +261,7 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
           <li>• Выделите текст и нажмите кнопку для форматирования</li>
           <li>• Выберите размер изображения (25%, 50%, 75%, 100%) перед загрузкой</li>
           <li>• Нажмите на иконку изображения для загрузки с компьютера</li>
-          <li>• Для YouTube видео используйте формат: https://youtube.com/embed/VIDEO_ID</li>
+          <li>• Для YouTube видео используйте формат: https://www.youtube-nocookie.com/embed/VIDEO_ID</li>
           <li>• Для HTML кода можно вставить напрямую в режиме редактора</li>
         </ul>
       </div>
