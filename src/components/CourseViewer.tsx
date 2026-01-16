@@ -66,9 +66,10 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
         setCourse(courseResult.data);
       }
 
-      setHasAccess(!!enrollmentResult.data);
+      const isEnrolled = !!enrollmentResult.data;
+      setHasAccess(isEnrolled);
 
-      if (lessonsResult.data && enrollmentResult.data) {
+      if (lessonsResult.data) {
         const progressMap = new Map(
           progressResult.data?.map(p => [p.lesson_id, p.is_completed]) || []
         );
@@ -80,12 +81,12 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
             lastCompletedIndex = index;
           }
 
-          const isLocked = index > lastCompletedIndex + 1;
+          const isLocked = !isEnrolled || (index > lastCompletedIndex + 1);
 
           return {
             id: lesson.id,
             title: lesson.title,
-            description: lesson.description || '',
+            description: lesson.content || '',
             video_url: lesson.video_url || '',
             duration_minutes: lesson.duration_minutes || 0,
             order_index: lesson.order_index,
@@ -96,11 +97,13 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
 
         setLessons(processedLessons);
 
-        const firstIncomplete = processedLessons.find(l => !l.is_completed && !l.is_locked);
-        if (firstIncomplete) {
-          setSelectedLesson(firstIncomplete);
-        } else if (processedLessons.length > 0) {
-          setSelectedLesson(processedLessons[0]);
+        if (isEnrolled) {
+          const firstIncomplete = processedLessons.find(l => !l.is_completed && !l.is_locked);
+          if (firstIncomplete) {
+            setSelectedLesson(firstIncomplete);
+          } else if (processedLessons.length > 0) {
+            setSelectedLesson(processedLessons[0]);
+          }
         }
       }
     } catch (error) {
