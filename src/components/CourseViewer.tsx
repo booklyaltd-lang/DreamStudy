@@ -201,7 +201,7 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
           <div className="lg:col-span-2">
             {selectedLesson ? (
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                {selectedLesson.video_url && (
+                {selectedLesson.video_url ? (
                   <div className="aspect-video bg-slate-900">
                     <video
                       src={selectedLesson.video_url}
@@ -209,6 +209,13 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
                       className="w-full h-full"
                       onEnded={() => markLessonComplete(selectedLesson.id)}
                     />
+                  </div>
+                ) : (
+                  <div className="aspect-video bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
+                    <div className="text-center">
+                      <PlayCircle className="w-16 h-16 text-slate-400 mx-auto mb-3" />
+                      <p className="text-slate-600 font-medium">Видео будет добавлено позже</p>
+                    </div>
                   </div>
                 )}
                 <div className="p-6">
@@ -240,8 +247,11 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
                     )}
                   </div>
                   {selectedLesson.description && (
-                    <div className="prose max-w-none">
-                      <p className="text-slate-700">{selectedLesson.description}</p>
+                    <div className="mt-6">
+                      <h3 className="text-lg font-semibold text-slate-900 mb-3">Содержание урока</h3>
+                      <div className="prose max-w-none">
+                        <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">{selectedLesson.description}</p>
+                      </div>
                     </div>
                   )}
                 </div>
