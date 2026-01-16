@@ -135,10 +135,6 @@ function Header({ onNavigate, currentPage, user, onSignOut }: { onNavigate: (p: 
                 </button>
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
-                    <button onClick={() => { onNavigate('user-profile'); setUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2">
-                      <User className="h-4 w-4" />
-                      <span>Мой профиль</span>
-                    </button>
                     <button onClick={() => { onNavigate('my-courses'); setUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2">
                       <BookOpen className="h-4 w-4" />
                       <span>Мои курсы</span>
@@ -182,7 +178,6 @@ function Header({ onNavigate, currentPage, user, onSignOut }: { onNavigate: (p: 
               ))}
               {user ? (
                 <>
-                  <button onClick={() => { onNavigate('user-profile'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Мой профиль</button>
                   <button onClick={() => { onNavigate('my-courses'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Мои курсы</button>
                   <button onClick={() => { onNavigate('subscriptions'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Подписка</button>
                   <button onClick={() => { onNavigate('dashboard'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Мой кабинет</button>
