@@ -660,7 +660,7 @@ function CourseDetailPage({ course, onNavigate, user }: { course: any; onNavigat
 
   const fetchLessons = async () => {
     try {
-      const { data } = await supabase.from('lessons').select('*').eq('course_id', course.id).order('order_index', { ascending: true });
+      const { data } = await supabase.from('course_lessons').select('*').eq('course_id', course.id).order('order_index', { ascending: true });
       setLessons(data || []);
     } catch (error) {
       console.error('Error:', error);

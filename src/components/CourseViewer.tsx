@@ -50,7 +50,7 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
           .eq('course_id', courseId)
           .maybeSingle(),
         supabase
-          .from('lessons')
+          .from('course_lessons')
           .select('*')
           .eq('course_id', courseId)
           .order('order_index', { ascending: true }),
