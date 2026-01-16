@@ -1172,9 +1172,41 @@ function BlogPostPage({ post, onNavigate }: { post: any; onNavigate: (p: PageTyp
           <>
             <div className="bg-white rounded-2xl shadow-sm p-8 sm:p-12 mb-8">
               <p className="text-xl text-gray-700 leading-relaxed mb-6">{post.excerpt}</p>
-              <div className="text-gray-700 leading-relaxed whitespace-pre-line">
-                {post.content}
-              </div>
+
+              {post.video_url && (
+                <div className="mb-8">
+                  {post.video_type === 'youtube' ? (
+                    <div className="relative w-full pt-[56.25%] rounded-lg overflow-hidden">
+                      <iframe
+                        className="absolute top-0 left-0 w-full h-full"
+                        src={`https://www.youtube.com/embed/${post.video_url.split('v=')[1]?.split('&')[0] || post.video_url.split('/').pop()}`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                  ) : post.video_type === 'vimeo' ? (
+                    <div className="relative w-full pt-[56.25%] rounded-lg overflow-hidden">
+                      <iframe
+                        className="absolute top-0 left-0 w-full h-full"
+                        src={`https://player.vimeo.com/video/${post.video_url.split('/').pop()}`}
+                        allow="autoplay; fullscreen; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                  ) : post.video_type === 'html' ? (
+                    <div dangerouslySetInnerHTML={{ __html: post.video_url }} />
+                  ) : (
+                    <video controls className="w-full rounded-lg">
+                      <source src={post.video_url} />
+                    </video>
+                  )}
+                </div>
+              )}
+
+              <div
+                className="prose prose-lg max-w-none text-gray-700 leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: post.content_html || post.content || '' }}
+              />
             </div>
 
             {post.tags && post.tags.length > 0 && (
