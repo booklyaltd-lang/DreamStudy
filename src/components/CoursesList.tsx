@@ -66,7 +66,7 @@ export default function CoursesList({ onCourseSelect }: CoursesListProps) {
 
   const handlePurchase = async (courseId: string, price: number) => {
     try {
-      const { error } = await supabase
+      const { error: purchaseError } = await supabase
         .from('course_purchases')
         .insert({
           user_id: user!.id,
@@ -74,10 +74,23 @@ export default function CoursesList({ onCourseSelect }: CoursesListProps) {
           price_paid: price
         });
 
-      if (!error) {
-        await loadCourses();
-        alert('Курс успешно куплен!');
+      if (purchaseError) {
+        throw purchaseError;
       }
+
+      const { error: enrollmentError } = await supabase
+        .from('enrollments')
+        .insert({
+          user_id: user!.id,
+          course_id: courseId
+        });
+
+      if (enrollmentError) {
+        throw enrollmentError;
+      }
+
+      await loadCourses();
+      alert('Курс успешно куплен!');
     } catch (error) {
       console.error('Error purchasing course:', error);
       alert('Ошибка при покупке курса');

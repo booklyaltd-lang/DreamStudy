@@ -51,7 +51,7 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
           .maybeSingle(),
         supabase
           .from('course_lessons')
-          .select('*')
+          .select('id, title, content, video_url, duration_minutes, order_index, is_free_preview')
           .eq('course_id', courseId)
           .eq('is_published', true)
           .order('order_index', { ascending: true }),
@@ -81,7 +81,8 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
             lastCompletedIndex = index;
           }
 
-          const isLocked = !isEnrolled || (index > lastCompletedIndex + 1);
+          const isFreePreview = lesson.is_free_preview || false;
+          const isLocked = !isFreePreview && (!isEnrolled || (index > lastCompletedIndex + 1));
 
           return {
             id: lesson.id,
@@ -97,13 +98,12 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
 
         setLessons(processedLessons);
 
-        if (isEnrolled) {
+        const firstAvailable = processedLessons.find(l => !l.is_locked);
+        if (firstAvailable) {
           const firstIncomplete = processedLessons.find(l => !l.is_completed && !l.is_locked);
-          if (firstIncomplete) {
-            setSelectedLesson(firstIncomplete);
-          } else if (processedLessons.length > 0) {
-            setSelectedLesson(processedLessons[0]);
-          }
+          setSelectedLesson(firstIncomplete || firstAvailable);
+        } else if (processedLessons.length > 0) {
+          setSelectedLesson(processedLessons[0]);
         }
       }
     } catch (error) {
@@ -151,7 +151,7 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
     );
   }
 
-  if (!hasAccess) {
+  if (!hasAccess && lessons.every(l => l.is_locked)) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center max-w-md">
@@ -186,15 +186,34 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
-            <div>
+            <div className="flex-1">
               <h1 className="text-xl font-bold text-slate-900">{course?.title}</h1>
               <p className="text-sm text-slate-600">
                 {lessons.filter(l => l.is_completed).length} / {lessons.length} уроков пройдено
               </p>
             </div>
+            {!hasAccess && (
+              <button
+                onClick={onBack}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                Купить полный доступ
+              </button>
+            )}
           </div>
         </div>
       </div>
+
+      {!hasAccess && (
+        <div className="bg-amber-50 border-b border-amber-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <p className="text-sm text-amber-800 text-center">
+              <Lock className="w-4 h-4 inline mr-2" />
+              Вы просматриваете бесплатные уроки. Купите курс, чтобы получить доступ ко всем материалам.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -249,9 +268,10 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
                   {selectedLesson.description && (
                     <div className="mt-6">
                       <h3 className="text-lg font-semibold text-slate-900 mb-3">Содержание урока</h3>
-                      <div className="prose max-w-none">
-                        <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">{selectedLesson.description}</p>
-                      </div>
+                      <div
+                        className="prose prose-slate max-w-none text-slate-700 leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: selectedLesson.description }}
+                      />
                     </div>
                   )}
                 </div>
