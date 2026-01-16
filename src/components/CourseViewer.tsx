@@ -37,14 +37,14 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
     try {
       setLoading(true);
 
-      const [courseResult, purchaseResult, lessonsResult, progressResult] = await Promise.all([
+      const [courseResult, enrollmentResult, lessonsResult, progressResult] = await Promise.all([
         supabase
           .from('courses')
           .select('*')
           .eq('id', courseId)
           .single(),
         supabase
-          .from('course_purchases')
+          .from('enrollments')
           .select('id')
           .eq('user_id', user!.id)
           .eq('course_id', courseId)
@@ -53,22 +53,24 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
           .from('course_lessons')
           .select('*')
           .eq('course_id', courseId)
+          .eq('is_published', true)
           .order('order_index', { ascending: true }),
         supabase
           .from('lesson_progress')
-          .select('lesson_id, completed')
+          .select('lesson_id, is_completed')
           .eq('user_id', user!.id)
+          .eq('course_id', courseId)
       ]);
 
       if (courseResult.data) {
         setCourse(courseResult.data);
       }
 
-      setHasAccess(!!purchaseResult.data);
+      setHasAccess(!!enrollmentResult.data);
 
-      if (lessonsResult.data && purchaseResult.data) {
+      if (lessonsResult.data && enrollmentResult.data) {
         const progressMap = new Map(
-          progressResult.data?.map(p => [p.lesson_id, p.completed]) || []
+          progressResult.data?.map(p => [p.lesson_id, p.is_completed]) || []
         );
 
         let lastCompletedIndex = -1;
@@ -120,9 +122,12 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
         .from('lesson_progress')
         .upsert({
           user_id: user!.id,
+          course_id: courseId,
           lesson_id: lessonId,
-          completed: true,
-          completed_at: new Date().toISOString()
+          is_completed: true,
+          completed_at: new Date().toISOString(),
+          last_watched_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         }, {
           onConflict: 'user_id,lesson_id'
         });
