@@ -669,6 +669,8 @@ function BlogManagement() {
 function UsersManagement() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -690,6 +692,33 @@ function UsersManagement() {
     }
   };
 
+  const formatExpiryDate = (date: string | null) => {
+    if (!date) return 'Не установлен';
+    const expiryDate = new Date(date);
+    const now = new Date();
+    const isExpired = expiryDate < now;
+    const formattedDate = expiryDate.toLocaleDateString('ru-RU');
+
+    if (isExpired) {
+      return <span className="text-red-600">{formattedDate} (истек)</span>;
+    }
+    return formattedDate;
+  };
+
+  const getTierName = (tier: string | null) => {
+    if (!tier || tier === 'free') return 'Free';
+    if (tier === 'basic') return 'Basic';
+    if (tier === 'premium') return 'Premium';
+    return tier;
+  };
+
+  const getTierColor = (tier: string | null) => {
+    if (!tier || tier === 'free') return 'bg-gray-100 text-gray-800';
+    if (tier === 'basic') return 'bg-blue-100 text-blue-800';
+    if (tier === 'premium') return 'bg-amber-100 text-amber-800';
+    return 'bg-gray-100 text-gray-800';
+  };
+
   if (loading) return <div className="text-center py-8">Загрузка...</div>;
 
   return (
@@ -703,7 +732,10 @@ function UsersManagement() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Пользователь</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Роль</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Тарифный план</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действует до</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Дата регистрации</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -729,13 +761,164 @@ function UsersManagement() {
                     {user.role === 'admin' ? 'Администратор' : 'Пользователь'}
                   </span>
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getTierColor(user.subscription_tier)}`}>
+                    {getTierName(user.subscription_tier)}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                  {formatExpiryDate(user.subscription_expires_at)}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   {new Date(user.created_at).toLocaleDateString('ru-RU')}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <button
+                    onClick={() => {
+                      setEditingUser(user);
+                      setShowEditModal(true);
+                    }}
+                    className="text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Изменить тариф
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+
+      {showEditModal && editingUser && (
+        <UserSubscriptionModal
+          user={editingUser}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingUser(null);
+          }}
+          onSave={() => {
+            setShowEditModal(false);
+            setEditingUser(null);
+            fetchUsers();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function UserSubscriptionModal({ user, onClose, onSave }: { user: any; onClose: () => void; onSave: () => void }) {
+  const [tier, setTier] = useState(user.subscription_tier || 'free');
+  const [expiresAt, setExpiresAt] = useState(
+    user.subscription_expires_at
+      ? new Date(user.subscription_expires_at).toISOString().split('T')[0]
+      : ''
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+
+    try {
+      const updateData: any = {
+        subscription_tier: tier,
+        updated_at: new Date().toISOString()
+      };
+
+      if (expiresAt) {
+        updateData.subscription_expires_at = new Date(expiresAt).toISOString();
+      } else {
+        updateData.subscription_expires_at = null;
+      }
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      onSave();
+    } catch (err: any) {
+      setError(err.message || 'Произошла ошибка при обновлении');
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+        <h3 className="text-xl font-bold text-gray-900 mb-4">
+          Изменить тарифный план
+        </h3>
+
+        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+          <p className="text-sm text-gray-600">Пользователь</p>
+          <p className="font-medium text-gray-900">{user.full_name || 'Без имени'}</p>
+          <p className="text-sm text-gray-500">{user.email}</p>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Тарифный план
+            </label>
+            <select
+              value={tier}
+              onChange={(e) => setTier(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="free">Free</option>
+              <option value="basic">Basic</option>
+              <option value="premium">Premium</option>
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              Выберите уровень доступа для пользователя
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Действует до
+            </label>
+            <input
+              type="date"
+              value={expiresAt}
+              onChange={(e) => setExpiresAt(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Оставьте пустым для бессрочного доступа
+            </p>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 font-medium rounded-lg hover:bg-gray-100"
+              disabled={saving}
+            >
+              Отмена
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              disabled={saving}
+            >
+              {saving ? 'Сохранение...' : 'Сохранить'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
