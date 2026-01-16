@@ -148,7 +148,7 @@ function Header({ onNavigate, currentPage, user, onSignOut }: { onNavigate: (p: 
                       <Settings className="h-4 w-4" />
                       <span>Настройки</span>
                     </button>
-                    <button onClick={onSignOut} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2">
+                    <button onClick={() => { onSignOut(); setUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2">
                       <LogOut className="h-4 w-4" />
                       <span>Выйти</span>
                     </button>
@@ -182,7 +182,7 @@ function Header({ onNavigate, currentPage, user, onSignOut }: { onNavigate: (p: 
                   <button onClick={() => { onNavigate('subscriptions'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Подписка</button>
                   <button onClick={() => { onNavigate('dashboard'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Мой кабинет</button>
                   <button onClick={() => { onNavigate('profile'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Настройки</button>
-                  <button onClick={onSignOut} className="text-left text-base font-medium text-red-600">Выйти</button>
+                  <button onClick={() => { onSignOut(); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-red-600">Выйти</button>
                 </>
               ) : (
                 <>
