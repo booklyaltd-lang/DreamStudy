@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BookOpen, Menu, X, User, LogOut, Clock, BarChart3, Facebook, Twitter, Linkedin, Instagram, ArrowRight, Sparkles, Video, Trophy, Search, Filter, Tag, Calendar, Share2, Check, ArrowLeft, PlayCircle, Lock, CheckCircle, Mail, AlertCircle, Settings, Shield, TrendingUp, Award, Youtube, Send, MessageCircle, Phone } from 'lucide-react';
 import { User as AuthUser } from '@supabase/supabase-js';
 import { ImageUploader } from './components/ImageUploader';
