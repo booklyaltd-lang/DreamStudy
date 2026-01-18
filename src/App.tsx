@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, Menu, X, User, LogOut, Clock, BarChart3, Facebook, Twitter, Linkedin, Instagram, ArrowRight, Sparkles, Video, Trophy, Search, Filter, Tag, Calendar, Share2, Check, ArrowLeft, PlayCircle, Lock, CheckCircle, Mail, AlertCircle, Settings, Shield, TrendingUp, Award, Youtube, Send, MessageCircle, Phone } from 'lucide-react';
+import { BookOpen, Menu, X, User, LogOut, Clock, BarChart3, Facebook, Twitter, Linkedin, Instagram, ArrowRight, Sparkles, Video, Trophy, Search, Filter, Tag, Calendar, Share2, Check, ArrowLeft, PlayCircle, Lock, CheckCircle, Mail, AlertCircle, Settings, Shield, TrendingUp, Award, Youtube, Send, MessageCircle, Phone, Copy, Link } from 'lucide-react';
 import { User as AuthUser } from '@supabase/supabase-js';
 import { ImageUploader } from './components/ImageUploader';
 import { AdminPanel } from './components/AdminPanel';
@@ -1120,11 +1120,59 @@ function BlogCard({ post, userTier, onClick }: { post: any; userTier: string; on
 function BlogPostPage({ post, onNavigate }: { post: any; onNavigate: (p: PageType) => void }) {
   const { profile } = useAuth();
   const userTier = profile?.subscription_tier || 'free';
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('ru-RU', { month: 'long', day: 'numeric', year: 'numeric' });
   };
+
+  const getShareUrl = () => {
+    return window.location.href;
+  };
+
+  const shareToFacebook = () => {
+    const url = getShareUrl();
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank', 'width=600,height=400');
+    setShareMenuOpen(false);
+  };
+
+  const shareToVK = () => {
+    const url = getShareUrl();
+    const title = post.title;
+    window.open(`https://vk.com/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`, '_blank', 'width=600,height=400');
+    setShareMenuOpen(false);
+  };
+
+  const shareToTelegram = () => {
+    const url = getShareUrl();
+    const title = post.title;
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`, '_blank');
+    setShareMenuOpen(false);
+  };
+
+  const copyLink = async () => {
+    const url = getShareUrl();
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('Ссылка скопирована в буфер обмена!');
+      setShareMenuOpen(false);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (shareMenuOpen && !target.closest('.share-menu-container')) {
+        setShareMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [shareMenuOpen]);
 
   const canAccess = () => {
     const requiredTier = post.required_tier || 'free';
@@ -1259,13 +1307,49 @@ function BlogPostPage({ post, onNavigate }: { post: any; onNavigate: (p: PageTyp
               </div>
             )}
 
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-white text-center">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-white text-center relative share-menu-container">
               <Share2 className="h-12 w-12 mx-auto mb-4" />
               <h3 className="text-2xl font-bold mb-2">Понравилась статья?</h3>
               <p className="text-blue-100 mb-6">Поделитесь ею с друзьями и помогите другим учиться</p>
-              <button className="px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors">
-                Поделиться статьёй
+              <button
+                onClick={() => setShareMenuOpen(!shareMenuOpen)}
+                className="px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors"
+              >
+                Поделиться статьей
               </button>
+
+              {shareMenuOpen && (
+                <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 bg-white rounded-lg shadow-xl overflow-hidden z-10 min-w-[240px]">
+                  <button
+                    onClick={shareToFacebook}
+                    className="w-full px-6 py-3 text-left text-gray-700 hover:bg-blue-50 transition-colors flex items-center space-x-3"
+                  >
+                    <Facebook className="h-5 w-5 text-blue-600" />
+                    <span>Facebook</span>
+                  </button>
+                  <button
+                    onClick={shareToVK}
+                    className="w-full px-6 py-3 text-left text-gray-700 hover:bg-blue-50 transition-colors flex items-center space-x-3"
+                  >
+                    <MessageCircle className="h-5 w-5 text-blue-500" />
+                    <span>VK</span>
+                  </button>
+                  <button
+                    onClick={shareToTelegram}
+                    className="w-full px-6 py-3 text-left text-gray-700 hover:bg-blue-50 transition-colors flex items-center space-x-3"
+                  >
+                    <Send className="h-5 w-5 text-blue-400" />
+                    <span>Telegram</span>
+                  </button>
+                  <button
+                    onClick={copyLink}
+                    className="w-full px-6 py-3 text-left text-gray-700 hover:bg-blue-50 transition-colors flex items-center space-x-3 border-t"
+                  >
+                    <Copy className="h-5 w-5 text-gray-600" />
+                    <span>Копировать ссылку</span>
+                  </button>
+                </div>
+              )}
             </div>
           </>
         )}
