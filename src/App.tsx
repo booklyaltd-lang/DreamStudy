@@ -43,10 +43,106 @@ function App() {
     });
   }, [settings, settingsLoading]);
 
+  useEffect(() => {
+    const loadPageFromUrl = async () => {
+      const path = window.location.pathname;
+      const segments = path.split('/').filter(Boolean);
+
+      if (segments.length === 0) {
+        setCurrentPage('home');
+      } else if (segments[0] === 'blog') {
+        if (segments.length === 1) {
+          setCurrentPage('blog');
+        } else if (segments.length === 2) {
+          const slug = segments[1];
+          try {
+            const { data: post, error } = await supabase
+              .from('blog_posts')
+              .select('*')
+              .eq('slug', slug)
+              .eq('published', true)
+              .maybeSingle();
+
+            if (post && !error) {
+              setCurrentPage('blogpost');
+              setPageData(post);
+            } else {
+              setCurrentPage('blog');
+            }
+          } catch (error) {
+            console.error('Error loading post:', error);
+            setCurrentPage('blog');
+          }
+        }
+      } else if (segments[0] === 'courses') {
+        setCurrentPage('courses');
+      } else if (segments[0] === 'course' && segments.length === 2) {
+        const courseId = segments[1];
+        try {
+          const { data: course, error } = await supabase
+            .from('courses')
+            .select('*')
+            .eq('id', courseId)
+            .maybeSingle();
+
+          if (course && !error) {
+            setCurrentPage('course');
+            setPageData(course);
+          } else {
+            setCurrentPage('courses');
+          }
+        } catch (error) {
+          console.error('Error loading course:', error);
+          setCurrentPage('courses');
+        }
+      } else if (segments[0] === 'pricing') {
+        setCurrentPage('pricing');
+      } else if (segments[0] === 'signin') {
+        setCurrentPage('signin');
+      } else if (segments[0] === 'signup') {
+        setCurrentPage('signup');
+      } else if (segments[0] === 'profile') {
+        setCurrentPage('profile');
+      } else if (segments[0] === 'admin') {
+        setCurrentPage('admin');
+      } else if (segments[0] === 'my-courses') {
+        setCurrentPage('my-courses');
+      } else if (segments[0] === 'subscriptions') {
+        setCurrentPage('subscriptions');
+      } else {
+        setCurrentPage('home');
+      }
+    };
+
+    loadPageFromUrl();
+
+    const handlePopState = () => {
+      loadPageFromUrl();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const handleNavigate = (page: PageType, data?: any) => {
     setCurrentPage(page);
     setPageData(data);
     window.scrollTo(0, 0);
+
+    let url = '/';
+    if (page === 'blog') url = '/blog';
+    else if (page === 'blogpost' && data?.slug) url = `/blog/${data.slug}`;
+    else if (page === 'courses') url = '/courses';
+    else if (page === 'course' && data?.id) url = `/course/${data.id}`;
+    else if (page === 'pricing') url = '/pricing';
+    else if (page === 'signin') url = '/signin';
+    else if (page === 'signup') url = '/signup';
+    else if (page === 'profile') url = '/profile';
+    else if (page === 'admin') url = '/admin';
+    else if (page === 'my-courses') url = '/my-courses';
+    else if (page === 'subscriptions') url = '/subscriptions';
+
+    window.history.pushState({}, '', url);
   };
 
   const handleSignOut = async () => {
