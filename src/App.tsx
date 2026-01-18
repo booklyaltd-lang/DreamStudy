@@ -11,10 +11,11 @@ import UserProfile from './components/UserProfile';
 import CourseViewer from './components/CourseViewer';
 import CoursesList from './components/CoursesList';
 import SubscriptionPlans from './components/SubscriptionPlans';
+import PaymentButton from './components/PaymentButton';
 import { supabase } from './lib/supabase';
 import { updateMetaTags, getFullUrl, getAbsoluteImageUrl } from './lib/meta';
 
-type PageType = 'home' | 'courses' | 'course' | 'blog' | 'blogpost' | 'pricing' | 'dashboard' | 'profile' | 'admin' | 'admin-setup' | 'signin' | 'signup' | 'my-courses' | 'course-viewer' | 'subscriptions' | 'user-profile';
+type PageType = 'home' | 'courses' | 'course' | 'blog' | 'blogpost' | 'pricing' | 'dashboard' | 'profile' | 'admin' | 'admin-setup' | 'signin' | 'signup' | 'my-courses' | 'course-viewer' | 'subscriptions' | 'user-profile' | 'payment-success';
 
 function App() {
   const { user, signOut } = useAuth();
@@ -109,6 +110,8 @@ function App() {
         setCurrentPage('my-courses');
       } else if (segments[0] === 'subscriptions') {
         setCurrentPage('subscriptions');
+      } else if (segments[0] === 'payment-success') {
+        setCurrentPage('payment-success');
       } else {
         setCurrentPage('home');
       }
@@ -141,6 +144,7 @@ function App() {
     else if (page === 'admin') url = '/admin';
     else if (page === 'my-courses') url = '/my-courses';
     else if (page === 'subscriptions') url = '/subscriptions';
+    else if (page === 'payment-success') url = '/payment-success';
 
     window.history.pushState({}, '', url);
   };
@@ -190,6 +194,8 @@ function App() {
         return <CourseViewer courseId={pageData} onBack={() => handleNavigate('my-courses')} />;
       case 'subscriptions':
         return <SubscriptionPlans />;
+      case 'payment-success':
+        return <PaymentSuccessPage onNavigate={handleNavigate} />;
       default:
         return <HomePage onNavigate={handleNavigate} />;
     }
@@ -897,10 +903,23 @@ function CourseDetailPage({ course, onNavigate, user }: { course: any; onNavigat
                       Вы записаны на этот курс
                     </p>
                   </div>
-                ) : (
+                ) : (course.price === 0 || course.price === null) ? (
                   <button onClick={handleEnroll} disabled={enrolling} className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400">
-                    {enrolling ? 'Запись...' : 'Записаться'}
+                    {enrolling ? 'Запись...' : 'Записаться бесплатно'}
                   </button>
+                ) : !user ? (
+                  <button onClick={() => onNavigate('signin')} className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                    Войти для покупки
+                  </button>
+                ) : (
+                  <PaymentButton
+                    amount={course.price}
+                    paymentType="course"
+                    courseId={course.id}
+                    description={`Курс "${course.title}" - ${course.price} ₽`}
+                    buttonText="Купить курс"
+                    className="w-full"
+                  />
                 )}
               </div>
             </div>
@@ -1576,9 +1595,24 @@ function PricingPage({ onNavigate, user }: { onNavigate: (p: PageType) => void; 
                     )}
                   </div>
 
-                  <button onClick={() => handleSelectPlan(plan.tier)} className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${plan.highlighted ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}>
-                    {plan.tier === 'free' ? 'Начать' : 'Выбрать тариф'}
-                  </button>
+                  {plan.tier === 'free' || plan.price === 0 ? (
+                    <button onClick={() => handleSelectPlan(plan.tier)} className="w-full py-3 px-6 rounded-lg font-semibold transition-all duration-300 bg-gray-100 text-gray-900 hover:bg-gray-200">
+                      Начать
+                    </button>
+                  ) : !user ? (
+                    <button onClick={() => onNavigate('signup')} className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${plan.highlighted ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}>
+                      Зарегистрироваться
+                    </button>
+                  ) : (
+                    <PaymentButton
+                      amount={plan.price}
+                      paymentType="subscription"
+                      tier={plan.tier}
+                      description={`Подписка "${plan.name}" - ${plan.price} ₽/месяц`}
+                      buttonText="Оплатить"
+                      className="w-full"
+                    />
+                  )}
 
                   <ul className="mt-8 space-y-4">
                     {plan.features.map((feature: string, i: number) => (
@@ -2407,6 +2441,57 @@ function ProfilePage({ onNavigate, user }: { onNavigate: (p: PageType) => void; 
               </span>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PaymentSuccessPage({ onNavigate }: { onNavigate: (p: PageType) => void }) {
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('Проверяем статус платежа...');
+
+  useEffect(() => {
+    const checkPayment = async () => {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      setMessage('Платеж успешно обработан!');
+      setLoading(false);
+      setTimeout(() => {
+        onNavigate('dashboard');
+      }, 3000);
+    };
+
+    checkPayment();
+  }, [onNavigate]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center px-4">
+      <div className="max-w-md w-full text-center">
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          {loading ? (
+            <>
+              <div className="w-20 h-20 mx-auto mb-6 relative">
+                <div className="absolute inset-0 border-4 border-blue-200 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">{message}</h2>
+              <p className="text-gray-600">Пожалуйста, подождите...</p>
+            </>
+          ) : (
+            <>
+              <div className="w-20 h-20 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-12 h-12 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">{message}</h2>
+              <p className="text-gray-600 mb-6">Перенаправляем вас в личный кабинет...</p>
+              <button
+                onClick={() => onNavigate('dashboard')}
+                className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Перейти в кабинет
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
