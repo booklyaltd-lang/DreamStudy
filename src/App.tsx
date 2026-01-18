@@ -1128,7 +1128,7 @@ function BlogPostPage({ post, onNavigate }: { post: any; onNavigate: (p: PageTyp
   };
 
   const getShareUrl = () => {
-    return window.location.href;
+    return getFullUrl(`/blog/${post.slug}`);
   };
 
   const shareToFacebook = () => {
@@ -1140,14 +1140,17 @@ function BlogPostPage({ post, onNavigate }: { post: any; onNavigate: (p: PageTyp
   const shareToVK = () => {
     const url = getShareUrl();
     const title = post.title;
-    window.open(`https://vk.com/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`, '_blank', 'width=600,height=400');
+    const image = post.cover_image_url || '';
+    const description = post.excerpt || '';
+    window.open(`https://vk.com/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&image=${encodeURIComponent(image)}`, '_blank', 'width=600,height=400');
     setShareMenuOpen(false);
   };
 
   const shareToTelegram = () => {
     const url = getShareUrl();
     const title = post.title;
-    window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`, '_blank');
+    const text = `${title}\n\n${url}`;
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank');
     setShareMenuOpen(false);
   };
 
@@ -1173,6 +1176,22 @@ function BlogPostPage({ post, onNavigate }: { post: any; onNavigate: (p: PageTyp
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [shareMenuOpen]);
+
+  useEffect(() => {
+    const shareUrl = getFullUrl(`/blog/${post.slug}`);
+
+    updateMetaTags({
+      title: post.title,
+      description: post.excerpt || post.title,
+      image: post.cover_image_url || '',
+      url: shareUrl,
+      type: 'article'
+    });
+
+    return () => {
+      document.title = 'E-Learning Platform';
+    };
+  }, [post]);
 
   const canAccess = () => {
     const requiredTier = post.required_tier || 'free';

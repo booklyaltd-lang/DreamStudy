@@ -60,6 +60,6 @@ function updateMetaTag(attribute: string, attributeValue: string, content: strin
 }
 
 export function getFullUrl(path: string = ''): string {
-  const baseUrl = window.location.origin;
+  const baseUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
   return path ? `${baseUrl}${path.startsWith('/') ? path : '/' + path}` : baseUrl;
 }
