@@ -12,13 +12,34 @@ import CourseViewer from './components/CourseViewer';
 import CoursesList from './components/CoursesList';
 import SubscriptionPlans from './components/SubscriptionPlans';
 import { supabase } from './lib/supabase';
+import { updateMetaTags, getFullUrl } from './lib/meta';
 
 type PageType = 'home' | 'courses' | 'course' | 'blog' | 'blogpost' | 'pricing' | 'dashboard' | 'profile' | 'admin' | 'admin-setup' | 'signin' | 'signup' | 'my-courses' | 'course-viewer' | 'subscriptions' | 'user-profile';
 
 function App() {
   const { user, signOut } = useAuth();
+  const { settings } = useSiteSettings();
   const [currentPage, setCurrentPage] = useState<PageType>('home');
   const [pageData, setPageData] = useState<any>(null);
+
+  useEffect(() => {
+    const title = settings.site_tagline
+      ? `${settings.site_name}. ${settings.site_tagline}`
+      : settings.site_name;
+
+    const description = settings.meta_description || settings.hero_description;
+    const ogTitle = settings.og_title || title;
+    const ogDescription = settings.og_description || description;
+    const ogImage = settings.og_image_url || settings.about_image_url || settings.logo_url;
+
+    updateMetaTags({
+      title,
+      description,
+      image: ogImage,
+      url: getFullUrl(),
+      type: 'website'
+    });
+  }, [settings]);
 
   const handleNavigate = (page: PageType, data?: any) => {
     setCurrentPage(page);

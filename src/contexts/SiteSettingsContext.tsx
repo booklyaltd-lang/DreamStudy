@@ -28,6 +28,11 @@ interface SiteSettings {
   cta_card_title: string;
   cta_card_subtitle: string;
   social_links: SocialLink[];
+  site_tagline: string;
+  meta_description: string;
+  og_image_url: string;
+  og_title: string;
+  og_description: string;
 }
 
 const defaultSettings: SiteSettings = {
@@ -46,7 +51,12 @@ const defaultSettings: SiteSettings = {
   about_features: ['Обучение в удобном темпе', 'Сертификаты о прохождении', 'Поддержка экспертов', 'Практические проекты'],
   cta_card_title: 'Начните сегодня',
   cta_card_subtitle: 'И измените свое будущее',
-  social_links: []
+  social_links: [],
+  site_tagline: '',
+  meta_description: '',
+  og_image_url: '',
+  og_title: '',
+  og_description: ''
 };
 
 interface SiteSettingsContextType {

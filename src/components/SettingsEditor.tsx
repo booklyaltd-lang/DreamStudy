@@ -71,7 +71,12 @@ export function SettingsEditor() {
           about_features: ['Обучение в удобном темпе', 'Сертификаты о прохождении', 'Поддержка экспертов', 'Практические проекты'],
           cta_card_title: 'Начните сегодня',
           cta_card_subtitle: 'И измените свое будущее',
-          social_links: []
+          social_links: [],
+          site_tagline: '',
+          meta_description: '',
+          og_image_url: '',
+          og_title: '',
+          og_description: ''
         });
       }
     } catch (error) {
@@ -217,6 +222,84 @@ export function SettingsEditor() {
             }}
             label="Логотип сайта"
           />
+        </div>
+      </div>
+
+      <div className="space-y-6 bg-white p-6 rounded-lg border border-gray-200">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">SEO и социальные сети</h3>
+          <p className="text-sm text-gray-600 mt-1">Настройки для поисковой оптимизации и отображения ссылок в социальных сетях</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Слоган сайта
+          </label>
+          <input
+            type="text"
+            value={settings.site_tagline || ''}
+            onChange={(e) => setSettings({ ...settings, site_tagline: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            placeholder="Знания, как инструмент мышления"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Будет отображаться в заголовке страницы: "Название сайта. Слоган"
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Описание для поисковых систем
+          </label>
+          <textarea
+            rows={2}
+            value={settings.meta_description || ''}
+            onChange={(e) => setSettings({ ...settings, meta_description: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            placeholder="Краткое описание сайта для поисковых систем и социальных сетей"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Заголовок для социальных сетей (опционально)
+          </label>
+          <input
+            type="text"
+            value={settings.og_title || ''}
+            onChange={(e) => setSettings({ ...settings, og_title: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            placeholder="Если не указано, используется название + слоган"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Описание для социальных сетей (опционально)
+          </label>
+          <textarea
+            rows={2}
+            value={settings.og_description || ''}
+            onChange={(e) => setSettings({ ...settings, og_description: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            placeholder="Если не указано, используется описание для поисковых систем"
+          />
+        </div>
+
+        <div>
+          <ImageUploader
+            bucket="site-assets"
+            currentImage={settings.og_image_url || ''}
+            onUploadStart={() => setUploading(true)}
+            onUploadComplete={(url) => {
+              setSettings({ ...settings, og_image_url: url });
+              setUploading(false);
+            }}
+            label="Изображение для социальных сетей"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Рекомендуемый размер: 1200x630 пикселей. Это изображение будет отображаться при публикации ссылки на сайт в социальных сетях.
+          </p>
         </div>
       </div>
 
