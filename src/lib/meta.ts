@@ -18,6 +18,7 @@ export function updateMetaTags(config: MetaTagsConfig) {
   }
 
   // Update Open Graph meta tags
+  updateMetaTag('property', 'og:site_name', 'BizDevBlog');
   if (config.type) {
     updateMetaTag('property', 'og:type', config.type);
   }
@@ -29,6 +30,8 @@ export function updateMetaTags(config: MetaTagsConfig) {
   }
   if (config.image) {
     updateMetaTag('property', 'og:image', config.image);
+    updateMetaTag('property', 'og:image:width', '1200');
+    updateMetaTag('property', 'og:image:height', '630');
   }
   if (config.url) {
     updateMetaTag('property', 'og:url', config.url);
@@ -62,4 +65,22 @@ function updateMetaTag(attribute: string, attributeValue: string, content: strin
 export function getFullUrl(path: string = ''): string {
   const baseUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
   return path ? `${baseUrl}${path.startsWith('/') ? path : '/' + path}` : baseUrl;
+}
+
+export function getAbsoluteImageUrl(imageUrl: string): string {
+  if (!imageUrl) return '';
+
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+
+  if (imageUrl.includes('supabase.co/storage/')) {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    if (imageUrl.startsWith(supabaseUrl)) {
+      return imageUrl;
+    }
+  }
+
+  const baseUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
+  return imageUrl.startsWith('/') ? `${baseUrl}${imageUrl}` : `${baseUrl}/${imageUrl}`;
 }

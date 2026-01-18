@@ -12,7 +12,7 @@ import CourseViewer from './components/CourseViewer';
 import CoursesList from './components/CoursesList';
 import SubscriptionPlans from './components/SubscriptionPlans';
 import { supabase } from './lib/supabase';
-import { updateMetaTags, getFullUrl } from './lib/meta';
+import { updateMetaTags, getFullUrl, getAbsoluteImageUrl } from './lib/meta';
 
 type PageType = 'home' | 'courses' | 'course' | 'blog' | 'blogpost' | 'pricing' | 'dashboard' | 'profile' | 'admin' | 'admin-setup' | 'signin' | 'signup' | 'my-courses' | 'course-viewer' | 'subscriptions' | 'user-profile';
 
@@ -1140,7 +1140,7 @@ function BlogPostPage({ post, onNavigate }: { post: any; onNavigate: (p: PageTyp
   const shareToVK = () => {
     const url = getShareUrl();
     const title = post.title;
-    const image = post.cover_image_url || '';
+    const image = getAbsoluteImageUrl(post.cover_image_url || '');
     const description = post.excerpt || '';
     window.open(`https://vk.com/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&image=${encodeURIComponent(image)}`, '_blank', 'width=600,height=400');
     setShareMenuOpen(false);
@@ -1179,11 +1179,12 @@ function BlogPostPage({ post, onNavigate }: { post: any; onNavigate: (p: PageTyp
 
   useEffect(() => {
     const shareUrl = getFullUrl(`/blog/${post.slug}`);
+    const imageUrl = getAbsoluteImageUrl(post.cover_image_url || '');
 
     updateMetaTags({
       title: post.title,
       description: post.excerpt || post.title,
-      image: post.cover_image_url || '',
+      image: imageUrl,
       url: shareUrl,
       type: 'article'
     });
