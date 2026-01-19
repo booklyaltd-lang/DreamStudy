@@ -24,6 +24,8 @@ interface PaymentSettings {
   payment_secret_key: string;
   payment_webhook_secret: string;
   payment_enabled: boolean;
+  payment_cloudpayments_public_id: string;
+  payment_cloudpayments_api_password: string;
 }
 
 export function FinancialManagement() {
@@ -427,7 +429,9 @@ function PaymentManagement() {
     payment_api_key: '',
     payment_secret_key: '',
     payment_webhook_secret: '',
-    payment_enabled: false
+    payment_enabled: false,
+    payment_cloudpayments_public_id: '',
+    payment_cloudpayments_api_password: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -441,7 +445,7 @@ function PaymentManagement() {
     try {
       const { data, error } = await supabase
         .from('site_settings')
-        .select('payment_provider, payment_api_key, payment_secret_key, payment_webhook_secret, payment_enabled')
+        .select('payment_provider, payment_api_key, payment_secret_key, payment_webhook_secret, payment_enabled, payment_cloudpayments_public_id, payment_cloudpayments_api_password')
         .maybeSingle();
 
       if (error) throw error;
@@ -452,7 +456,9 @@ function PaymentManagement() {
           payment_api_key: data.payment_api_key || '',
           payment_secret_key: data.payment_secret_key || '',
           payment_webhook_secret: data.payment_webhook_secret || '',
-          payment_enabled: data.payment_enabled || false
+          payment_enabled: data.payment_enabled || false,
+          payment_cloudpayments_public_id: data.payment_cloudpayments_public_id || '',
+          payment_cloudpayments_api_password: data.payment_cloudpayments_api_password || ''
         });
       }
     } catch (error) {
@@ -519,50 +525,93 @@ function PaymentManagement() {
           </select>
         </div>
 
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-gray-700">API Key (Публичный ключ)</label>
-            <button
-              type="button"
-              onClick={() => setShowKeys(!showKeys)}
-              className="text-sm text-blue-600 hover:text-blue-700"
-            >
-              {showKeys ? 'Скрыть' : 'Показать'}
-            </button>
-          </div>
-          <input
-            type={showKeys ? 'text' : 'password'}
-            value={settings.payment_api_key}
-            onChange={(e) => setSettings({ ...settings, payment_api_key: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            placeholder="pk_live_..."
-          />
-        </div>
+        {settings.payment_provider === 'cloudpayments' ? (
+          <>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">Public ID</label>
+                <button
+                  type="button"
+                  onClick={() => setShowKeys(!showKeys)}
+                  className="text-sm text-blue-600 hover:text-blue-700"
+                >
+                  {showKeys ? 'Скрыть' : 'Показать'}
+                </button>
+              </div>
+              <input
+                type={showKeys ? 'text' : 'password'}
+                value={settings.payment_cloudpayments_public_id}
+                onChange={(e) => setSettings({ ...settings, payment_cloudpayments_public_id: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="pk_..."
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Public ID можно найти в личном кабинете CloudPayments в разделе API
+              </p>
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Secret Key (Секретный ключ)</label>
-          <input
-            type={showKeys ? 'text' : 'password'}
-            value={settings.payment_secret_key}
-            onChange={(e) => setSettings({ ...settings, payment_secret_key: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            placeholder="sk_live_..."
-          />
-        </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Пароль для API</label>
+              <input
+                type={showKeys ? 'text' : 'password'}
+                value={settings.payment_cloudpayments_api_password}
+                onChange={(e) => setSettings({ ...settings, payment_cloudpayments_api_password: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="API Password"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Пароль для API можно найти в личном кабинете CloudPayments в разделе API
+              </p>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">API Key (Публичный ключ)</label>
+                <button
+                  type="button"
+                  onClick={() => setShowKeys(!showKeys)}
+                  className="text-sm text-blue-600 hover:text-blue-700"
+                >
+                  {showKeys ? 'Скрыть' : 'Показать'}
+                </button>
+              </div>
+              <input
+                type={showKeys ? 'text' : 'password'}
+                value={settings.payment_api_key}
+                onChange={(e) => setSettings({ ...settings, payment_api_key: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="pk_live_..."
+              />
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Webhook Secret</label>
-          <input
-            type={showKeys ? 'text' : 'password'}
-            value={settings.payment_webhook_secret}
-            onChange={(e) => setSettings({ ...settings, payment_webhook_secret: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            placeholder="whsec_..."
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Используется для проверки подлинности вебхуков от платежной системы
-          </p>
-        </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Secret Key (Секретный ключ)</label>
+              <input
+                type={showKeys ? 'text' : 'password'}
+                value={settings.payment_secret_key}
+                onChange={(e) => setSettings({ ...settings, payment_secret_key: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="sk_live_..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Webhook Secret</label>
+              <input
+                type={showKeys ? 'text' : 'password'}
+                value={settings.payment_webhook_secret}
+                onChange={(e) => setSettings({ ...settings, payment_webhook_secret: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="whsec_..."
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Используется для проверки подлинности вебхуков от платежной системы
+              </p>
+            </div>
+          </>
+        )}
 
         <div className="pt-4 border-t border-gray-200">
           <label className="flex items-center space-x-3">

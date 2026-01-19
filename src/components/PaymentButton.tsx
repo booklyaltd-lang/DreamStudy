@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CreditCard, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -13,6 +13,12 @@ interface PaymentButtonProps {
   className?: string;
 }
 
+declare global {
+  interface Window {
+    cp?: any;
+  }
+}
+
 export default function PaymentButton({
   amount,
   paymentType,
@@ -25,6 +31,20 @@ export default function PaymentButton({
 }: PaymentButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [widgetLoaded, setWidgetLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!document.getElementById('cloudpayments-widget')) {
+      const script = document.createElement('script');
+      script.id = 'cloudpayments-widget';
+      script.src = 'https://widget.cloudpayments.ru/bundles/cloudpayments.js';
+      script.async = true;
+      script.onload = () => setWidgetLoaded(true);
+      document.body.appendChild(script);
+    } else {
+      setWidgetLoaded(true);
+    }
+  }, []);
 
   const handlePayment = async () => {
     try {
@@ -58,7 +78,7 @@ export default function PaymentButton({
       const data = await response.json();
 
       if (!response.ok) {
-        if (data.error && data.error.includes('YooKassa credentials not configured')) {
+        if (data.error && (data.error.includes('credentials not configured') || data.error.includes('Payment system is disabled'))) {
           setError('Платежная система не настроена. Обратитесь к администратору.');
         } else {
           setError(data.error || 'Ошибка при создании платежа');
@@ -66,7 +86,34 @@ export default function PaymentButton({
         return;
       }
 
-      if (data.confirmation_url) {
+      if (data.widget_data) {
+        if (!widgetLoaded || !window.cp) {
+          setError('Виджет оплаты не загружен. Пожалуйста, обновите страницу.');
+          return;
+        }
+
+        const widget = new window.cp.CloudPayments();
+        widget.pay('charge', {
+          publicId: data.widget_data.publicId,
+          description: data.widget_data.description,
+          amount: data.widget_data.amount,
+          currency: data.widget_data.currency,
+          invoiceId: data.widget_data.invoiceId,
+          accountId: data.widget_data.accountId,
+          email: data.widget_data.email,
+        }, {
+          onSuccess: () => {
+            window.location.href = '/payment-success';
+          },
+          onFail: (reason: string) => {
+            setError(`Ошибка оплаты: ${reason}`);
+            setLoading(false);
+          },
+          onComplete: () => {
+            setLoading(false);
+          }
+        });
+      } else if (data.confirmation_url) {
         window.location.href = data.confirmation_url;
       } else {
         setError('Не получен URL для оплаты');
@@ -75,7 +122,9 @@ export default function PaymentButton({
       console.error('Payment error:', err);
       setError('Произошла ошибка при создании платежа');
     } finally {
-      setLoading(false);
+      if (!error) {
+        setLoading(false);
+      }
     }
   };
 

@@ -25,20 +25,6 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const yookassaShopId = Deno.env.get('YOOKASSA_SHOP_ID');
-    const yookassaSecretKey = Deno.env.get('YOOKASSA_SECRET_KEY');
-
-    if (!yookassaShopId || !yookassaSecretKey) {
-      return new Response(
-        JSON.stringify({
-          error: 'YooKassa credentials not configured. Please set YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY environment variables.',
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -79,8 +65,170 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const idempotenceKey = crypto.randomUUID();
+    // Get payment settings from database
+    const { data: settings, error: settingsError } = await supabase
+      .from('site_settings')
+      .select('payment_provider, payment_enabled, payment_cloudpayments_public_id, payment_cloudpayments_api_password, payment_api_key, payment_secret_key')
+      .maybeSingle();
 
+    if (settingsError || !settings) {
+      return new Response(
+        JSON.stringify({ error: 'Failed to load payment settings' }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    if (!settings.payment_enabled) {
+      return new Response(
+        JSON.stringify({ error: 'Payment system is disabled' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const provider = settings.payment_provider || 'yookassa';
+
+    // CloudPayments
+    if (provider === 'cloudpayments') {
+      const publicId = settings.payment_cloudpayments_public_id;
+      const apiPassword = settings.payment_cloudpayments_api_password;
+
+      if (!publicId || !apiPassword) {
+        return new Response(
+          JSON.stringify({
+            error: 'CloudPayments credentials not configured',
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      const invoiceId = crypto.randomUUID();
+      const cloudPaymentsAuth = btoa(`${publicId}:${apiPassword}`);
+
+      // Get user profile for email
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const userEmail = profile?.email || user.email || 'user@example.com';
+
+      const paymentData = {
+        Amount: amount,
+        Currency: 'RUB',
+        InvoiceId: invoiceId,
+        Description: description,
+        AccountId: user.id,
+        Email: userEmail,
+        JsonData: JSON.stringify({
+          user_id: user.id,
+          payment_type,
+          ...(tier && { tier }),
+          ...(course_id && { course_id }),
+        }),
+      };
+
+      const cloudPaymentsResponse = await fetch('https://api.cloudpayments.ru/payments/cards/topup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${cloudPaymentsAuth}`,
+        },
+        body: JSON.stringify(paymentData),
+      });
+
+      if (!cloudPaymentsResponse.ok) {
+        const errorText = await cloudPaymentsResponse.text();
+        console.error('CloudPayments error:', errorText);
+        return new Response(
+          JSON.stringify({ error: 'Failed to create payment', details: errorText }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      const cloudPaymentsResult = await cloudPaymentsResponse.json();
+
+      if (!cloudPaymentsResult.Success) {
+        return new Response(
+          JSON.stringify({ error: 'CloudPayments error', details: cloudPaymentsResult.Message }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      const { error: dbError } = await supabase.from('payments').insert({
+        user_id: user.id,
+        yookassa_payment_id: invoiceId,
+        amount: amount,
+        currency: 'RUB',
+        status: 'pending',
+        payment_type: payment_type,
+        course_id: course_id || null,
+        metadata: {
+          provider: 'cloudpayments',
+          tier,
+          description,
+          transaction_id: cloudPaymentsResult.Model?.TransactionId,
+        },
+      });
+
+      if (dbError) {
+        console.error('Database error:', dbError);
+      }
+
+      return new Response(
+        JSON.stringify({
+          payment_id: invoiceId,
+          confirmation_url: cloudPaymentsResult.Model?.Url || `${req.headers.get('origin')}/payment-success`,
+          status: 'pending',
+          widget_data: {
+            publicId: publicId,
+            description: description,
+            amount: amount,
+            currency: 'RUB',
+            invoiceId: invoiceId,
+            accountId: user.id,
+            email: userEmail,
+          },
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // YooKassa (default)
+    const yookassaShopId = Deno.env.get('YOOKASSA_SHOP_ID') || settings.payment_api_key;
+    const yookassaSecretKey = Deno.env.get('YOOKASSA_SECRET_KEY') || settings.payment_secret_key;
+
+    if (!yookassaShopId || !yookassaSecretKey) {
+      return new Response(
+        JSON.stringify({
+          error: 'YooKassa credentials not configured',
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const idempotenceKey = crypto.randomUUID();
     const yookassaAuth = btoa(`${yookassaShopId}:${yookassaSecretKey}`);
 
     const paymentData = {
@@ -135,6 +283,7 @@ Deno.serve(async (req: Request) => {
       payment_type: payment_type,
       course_id: course_id || null,
       metadata: {
+        provider: 'yookassa',
         tier,
         description,
       },
@@ -142,13 +291,6 @@ Deno.serve(async (req: Request) => {
 
     if (dbError) {
       console.error('Database error:', dbError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to save payment', details: dbError }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
     }
 
     return new Response(
