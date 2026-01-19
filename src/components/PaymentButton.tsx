@@ -125,7 +125,7 @@ export default function PaymentButton({
             invoiceId: data.widget_data.invoiceId,
           });
 
-          widget.pay('charge', {
+          const payResult = widget.pay('charge', {
             publicId: data.widget_data.publicId,
             description: data.widget_data.description,
             amount: data.widget_data.amount,
@@ -133,6 +133,7 @@ export default function PaymentButton({
             invoiceId: data.widget_data.invoiceId,
             accountId: data.widget_data.accountId,
             email: data.widget_data.email,
+            skin: "mini",
             data: data.widget_data.data,
           }, {
             onSuccess: (options: any) => {
@@ -147,11 +148,11 @@ export default function PaymentButton({
             },
             onComplete: (paymentResult: any, options: any) => {
               console.log('Payment complete:', paymentResult, options);
+              setLoading(false);
             }
           });
 
-          console.log('widget.pay called successfully');
-          setLoading(false);
+          console.log('widget.pay called, result:', payResult);
         } catch (err) {
           console.error('Error with CloudPayments widget:', err);
           setError('Ошибка при открытии окна оплаты: ' + (err as Error).message);
