@@ -151,22 +151,9 @@ export default function PaymentButton({
 
           console.log('About to call widget.pay...');
 
-          const result = widget.pay('charge', payOptions, callbacks);
+          widget.pay('charge', payOptions, callbacks);
 
-          console.log('widget.pay returned:', result);
-          console.log('typeof result:', typeof result);
-
-          if (result && typeof result.then === 'function') {
-            console.log('Result is a Promise, awaiting...');
-            try {
-              await result;
-              console.log('Promise resolved successfully');
-            } catch (promiseError) {
-              console.error('Promise rejected:', promiseError);
-              setError('Ошибка виджета: ' + (promiseError as Error).message);
-              setLoading(false);
-            }
-          }
+          console.log('Widget.pay called - waiting for callbacks...');
         } catch (err) {
           console.error('Error with CloudPayments widget:', err);
           console.error('Error stack:', (err as Error).stack);
