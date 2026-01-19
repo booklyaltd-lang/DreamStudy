@@ -78,13 +78,24 @@ export default function PaymentButton({
       const data = await response.json();
 
       if (!response.ok) {
+        console.error('Payment creation failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: data.error,
+          details: data.details
+        });
+
         if (data.error && (data.error.includes('credentials not configured') || data.error.includes('Payment system is disabled'))) {
           setError('Платежная система не настроена. Обратитесь к администратору.');
+        } else if (data.details) {
+          setError(`${data.error || 'Ошибка при создании платежа'}: ${data.details}`);
         } else {
           setError(data.error || 'Ошибка при создании платежа');
         }
         return;
       }
+
+      console.log('Payment creation response:', data);
 
       if (data.widget_data) {
         if (!widgetLoaded || !window.cp) {
