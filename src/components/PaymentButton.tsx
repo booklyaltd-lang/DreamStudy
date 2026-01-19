@@ -113,6 +113,8 @@ export default function PaymentButton({
         console.log('window.cp.CloudPayments:', window.cp.CloudPayments);
 
         try {
+          console.log('Full widget_data:', JSON.stringify(data.widget_data, null, 2));
+
           const widget = new window.cp.CloudPayments();
           console.log('Widget created:', widget);
           console.log('About to call widget.pay with params:', {
