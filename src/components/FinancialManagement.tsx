@@ -546,12 +546,12 @@ function PaymentManagement() {
                 placeholder="pk_..."
               />
               <p className="text-xs text-gray-500 mt-1">
-                Public ID можно найти в личном кабинете CloudPayments в разделе API
+                Public ID можно найти в личном кабинете CloudPayments в разделе "Сайт" → "Public ID"
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Пароль для API</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Пароль для API (необязательно)</label>
               <input
                 type={showKeys ? 'text' : 'password'}
                 value={settings.payment_cloudpayments_api_password}
@@ -560,7 +560,7 @@ function PaymentManagement() {
                 placeholder="API Password"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Пароль для API можно найти в личном кабинете CloudPayments в разделе API
+                Используется для обработки webhook уведомлений. Можно найти в разделе "Сайт" → "API Secret"
               </p>
             </div>
           </>

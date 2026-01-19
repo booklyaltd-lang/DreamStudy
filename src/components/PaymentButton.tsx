@@ -89,6 +89,7 @@ export default function PaymentButton({
       if (data.widget_data) {
         if (!widgetLoaded || !window.cp) {
           setError('Виджет оплаты не загружен. Пожалуйста, обновите страницу.');
+          setLoading(false);
           return;
         }
 
@@ -101,18 +102,22 @@ export default function PaymentButton({
           invoiceId: data.widget_data.invoiceId,
           accountId: data.widget_data.accountId,
           email: data.widget_data.email,
+          data: data.widget_data.data,
         }, {
-          onSuccess: () => {
+          onSuccess: (options: any) => {
+            console.log('Payment successful:', options);
             window.location.href = '/payment-success';
           },
-          onFail: (reason: string) => {
+          onFail: (reason: string, options: any) => {
+            console.error('Payment failed:', reason, options);
             setError(`Ошибка оплаты: ${reason}`);
             setLoading(false);
           },
-          onComplete: () => {
-            setLoading(false);
+          onComplete: (paymentResult: any, options: any) => {
+            console.log('Payment complete:', paymentResult, options);
           }
         });
+        return;
       } else if (data.confirmation_url) {
         window.location.href = data.confirmation_url;
       } else {

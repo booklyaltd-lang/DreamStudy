@@ -96,9 +96,8 @@ Deno.serve(async (req: Request) => {
     // CloudPayments
     if (provider === 'cloudpayments') {
       const publicId = settings.payment_cloudpayments_public_id;
-      const apiPassword = settings.payment_cloudpayments_api_password;
 
-      if (!publicId || !apiPassword) {
+      if (!publicId) {
         return new Response(
           JSON.stringify({
             error: 'CloudPayments credentials not configured',
@@ -111,9 +110,7 @@ Deno.serve(async (req: Request) => {
       }
 
       const invoiceId = crypto.randomUUID();
-      const cloudPaymentsAuth = btoa(`${publicId}:${apiPassword}`);
 
-      // Get user profile for email
       const { data: profile } = await supabase
         .from('profiles')
         .select('email')
@@ -121,54 +118,6 @@ Deno.serve(async (req: Request) => {
         .maybeSingle();
 
       const userEmail = profile?.email || user.email || 'user@example.com';
-
-      const paymentData = {
-        Amount: amount,
-        Currency: 'RUB',
-        InvoiceId: invoiceId,
-        Description: description,
-        AccountId: user.id,
-        Email: userEmail,
-        JsonData: JSON.stringify({
-          user_id: user.id,
-          payment_type,
-          ...(tier && { tier }),
-          ...(course_id && { course_id }),
-        }),
-      };
-
-      const cloudPaymentsResponse = await fetch('https://api.cloudpayments.ru/payments/cards/topup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Basic ${cloudPaymentsAuth}`,
-        },
-        body: JSON.stringify(paymentData),
-      });
-
-      if (!cloudPaymentsResponse.ok) {
-        const errorText = await cloudPaymentsResponse.text();
-        console.error('CloudPayments error:', errorText);
-        return new Response(
-          JSON.stringify({ error: 'Failed to create payment', details: errorText }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
-
-      const cloudPaymentsResult = await cloudPaymentsResponse.json();
-
-      if (!cloudPaymentsResult.Success) {
-        return new Response(
-          JSON.stringify({ error: 'CloudPayments error', details: cloudPaymentsResult.Message }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
 
       const { error: dbError } = await supabase.from('payments').insert({
         user_id: user.id,
@@ -182,7 +131,6 @@ Deno.serve(async (req: Request) => {
           provider: 'cloudpayments',
           tier,
           description,
-          transaction_id: cloudPaymentsResult.Model?.TransactionId,
         },
       });
 
@@ -193,7 +141,6 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           payment_id: invoiceId,
-          confirmation_url: cloudPaymentsResult.Model?.Url || `${req.headers.get('origin')}/payment-success`,
           status: 'pending',
           widget_data: {
             publicId: publicId,
@@ -203,6 +150,12 @@ Deno.serve(async (req: Request) => {
             invoiceId: invoiceId,
             accountId: user.id,
             email: userEmail,
+            data: {
+              user_id: user.id,
+              payment_type,
+              ...(tier && { tier }),
+              ...(course_id && { course_id }),
+            },
           },
         }),
         {

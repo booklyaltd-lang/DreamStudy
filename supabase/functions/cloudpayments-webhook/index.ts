@@ -3,7 +3,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey, Content-Hmac',
 };
 
 interface CloudPaymentsNotification {
@@ -15,13 +15,24 @@ interface CloudPaymentsNotification {
   CardLastFour?: string;
   CardType?: string;
   Status: string;
+  StatusCode?: number;
   OperationType?: string;
   InvoiceId?: string;
   AccountId?: string;
   Email?: string;
-  Data?: string;
+  Data?: any;
   TestMode?: boolean;
   Token?: string;
+  Name?: string;
+  IpAddress?: string;
+  IpCountry?: string;
+  IpCity?: string;
+  IpRegion?: string;
+  IpDistrict?: string;
+  Description?: string;
+  AuthCode?: string;
+  PaymentAmount?: number;
+  PaymentCurrency?: string;
 }
 
 Deno.serve(async (req: Request) => {
@@ -39,12 +50,17 @@ Deno.serve(async (req: Request) => {
 
     const notification: CloudPaymentsNotification = await req.json();
 
-    console.log('CloudPayments webhook received:', notification);
+    console.log('CloudPayments webhook received:', {
+      TransactionId: notification.TransactionId,
+      InvoiceId: notification.InvoiceId,
+      Status: notification.Status,
+      Amount: notification.Amount,
+    });
 
     const invoiceId = notification.InvoiceId;
-    const status = notification.Status;
 
     if (!invoiceId) {
+      console.log('No InvoiceId in notification');
       return new Response(
         JSON.stringify({ code: 0 }),
         {
@@ -61,7 +77,7 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
 
     if (paymentError || !payment) {
-      console.error('Payment not found:', invoiceId);
+      console.error('Payment not found for InvoiceId:', invoiceId, paymentError);
       return new Response(
         JSON.stringify({ code: 0 }),
         {
@@ -72,11 +88,13 @@ Deno.serve(async (req: Request) => {
     }
 
     let newStatus = 'pending';
-    if (status === 'Completed' || status === 'Authorized') {
+    if (notification.Status === 'Completed' || notification.Status === 'Authorized') {
       newStatus = 'succeeded';
-    } else if (status === 'Declined' || status === 'Cancelled') {
+    } else if (notification.Status === 'Declined' || notification.Status === 'Cancelled') {
       newStatus = 'failed';
     }
+
+    console.log('Updating payment status to:', newStatus);
 
     const { error: updateError } = await supabase
       .from('payments')
@@ -85,25 +103,50 @@ Deno.serve(async (req: Request) => {
         metadata: {
           ...payment.metadata,
           cloudpayments_transaction_id: notification.TransactionId,
-          cloudpayments_status: status,
+          cloudpayments_status: notification.Status,
           card_first_six: notification.CardFirstSix,
           card_last_four: notification.CardLastFour,
           card_type: notification.CardType,
+          data: notification.Data,
         }
       })
       .eq('yookassa_payment_id', invoiceId);
 
     if (updateError) {
       console.error('Failed to update payment:', updateError);
+      return new Response(
+        JSON.stringify({ code: 13 }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     if (newStatus === 'succeeded') {
       const metadata = payment.metadata || {};
+      let dataObj = metadata;
+
+      if (notification.Data) {
+        try {
+          if (typeof notification.Data === 'string') {
+            dataObj = JSON.parse(notification.Data);
+          } else {
+            dataObj = notification.Data;
+          }
+        } catch (e) {
+          console.error('Failed to parse Data field:', e);
+        }
+      }
+
       const paymentType = payment.payment_type;
       const userId = payment.user_id;
+      const tier = dataObj.tier || metadata.tier || 'basic';
+      const courseId = payment.course_id || dataObj.course_id;
+
+      console.log('Processing successful payment:', { paymentType, userId, tier, courseId });
 
       if (paymentType === 'subscription') {
-        const tier = metadata.tier || 'basic';
         const endDate = new Date();
         endDate.setMonth(endDate.getMonth() + 1);
 
@@ -119,17 +162,21 @@ Deno.serve(async (req: Request) => {
 
         if (subError) {
           console.error('Failed to create subscription:', subError);
+        } else {
+          console.log('Subscription created successfully');
         }
-      } else if (paymentType === 'course' && payment.course_id) {
+      } else if (paymentType === 'course' && courseId) {
         const { error: purchaseError } = await supabase.from('course_purchases').insert({
           user_id: userId,
-          course_id: payment.course_id,
+          course_id: courseId,
           amount_paid: payment.amount,
           payment_id: payment.id,
         });
 
         if (purchaseError) {
           console.error('Failed to create course purchase:', purchaseError);
+        } else {
+          console.log('Course purchase created successfully');
         }
       }
     }
@@ -144,7 +191,7 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error('Error processing webhook:', error);
     return new Response(
-      JSON.stringify({ code: 0 }),
+      JSON.stringify({ code: 13 }),
       {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
