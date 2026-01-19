@@ -96,6 +96,10 @@ export default function PaymentButton({
       }
 
       console.log('Payment creation response:', data);
+      console.log('Has widget_data?', !!data.widget_data);
+      console.log('Has confirmation_url?', !!data.confirmation_url);
+      console.log('Widget loaded?', widgetLoaded);
+      console.log('window.cp exists?', !!window.cp);
 
       if (data.widget_data) {
         if (!widgetLoaded || !window.cp) {
