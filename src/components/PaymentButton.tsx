@@ -117,15 +117,9 @@ export default function PaymentButton({
 
           const widget = new window.cp.CloudPayments();
           console.log('Widget created:', widget);
-          console.log('About to call widget.pay with params:', {
-            publicId: data.widget_data.publicId,
-            description: data.widget_data.description,
-            amount: data.widget_data.amount,
-            currency: data.widget_data.currency,
-            invoiceId: data.widget_data.invoiceId,
-          });
+          console.log('typeof widget.pay:', typeof widget.pay);
 
-          const payResult = await widget.pay('charge', {
+          const payOptions = {
             publicId: data.widget_data.publicId,
             description: data.widget_data.description,
             amount: data.widget_data.amount,
@@ -135,27 +129,35 @@ export default function PaymentButton({
             email: data.widget_data.email,
             skin: "mini",
             data: data.widget_data.data,
-          }, {
-            onSuccess: (options: any) => {
+          };
+
+          console.log('Pay options:', payOptions);
+
+          const callbacks = {
+            onSuccess: function(options: any) {
               console.log('Payment successful:', options);
               setLoading(false);
               window.location.href = '/payment-success';
             },
-            onFail: (reason: string, options: any) => {
+            onFail: function(reason: string, options: any) {
               console.error('Payment failed:', reason, options);
               setError(`Ошибка оплаты: ${reason}`);
               setLoading(false);
             },
-            onComplete: (paymentResult: any, options: any) => {
+            onComplete: function(paymentResult: any, options: any) {
               console.log('Payment complete:', paymentResult, options);
-              setLoading(false);
             }
-          });
+          };
 
-          console.log('widget.pay completed, result:', payResult);
-          setLoading(false);
+          console.log('About to call widget.pay...');
+
+          const result = widget.pay('charge', payOptions, callbacks);
+
+          console.log('widget.pay returned:', result);
+          console.log('typeof result:', typeof result);
         } catch (err) {
           console.error('Error with CloudPayments widget:', err);
+          console.error('Error stack:', (err as Error).stack);
           setError('Ошибка при открытии окна оплаты: ' + (err as Error).message);
           setLoading(false);
         }
