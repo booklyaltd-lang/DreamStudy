@@ -95,9 +95,12 @@ Deno.serve(async (req: Request) => {
 
     // CloudPayments
     if (provider === 'cloudpayments') {
+      console.log('Processing CloudPayments payment for user:', user.id);
+
       const publicId = settings.payment_cloudpayments_public_id;
 
       if (!publicId) {
+        console.error('CloudPayments Public ID not configured');
         return new Response(
           JSON.stringify({
             error: 'CloudPayments credentials not configured',
@@ -110,33 +113,71 @@ Deno.serve(async (req: Request) => {
       }
 
       const invoiceId = crypto.randomUUID();
+      console.log('Generated invoice ID:', invoiceId);
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('id', user.id)
-        .maybeSingle();
+      let userEmail = 'user@example.com';
 
-      const userEmail = profile?.email || user.email || 'user@example.com';
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', user.id)
+          .maybeSingle();
 
-      const { error: dbError } = await supabase.from('payments').insert({
-        user_id: user.id,
-        yookassa_payment_id: invoiceId,
-        amount: amount,
-        currency: 'RUB',
-        status: 'pending',
-        payment_type: payment_type,
-        course_id: course_id || null,
-        metadata: {
-          provider: 'cloudpayments',
-          tier,
-          description,
-        },
-      });
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+        }
 
-      if (dbError) {
-        console.error('Database error:', dbError);
+        userEmail = profile?.email || user.email || 'user@example.com';
+        console.log('User email:', userEmail);
+      } catch (err) {
+        console.error('Error getting user email:', err);
       }
+
+      try {
+        const { error: dbError } = await supabase.from('payments').insert({
+          user_id: user.id,
+          yookassa_payment_id: invoiceId,
+          amount: amount,
+          currency: 'RUB',
+          status: 'pending',
+          payment_type: payment_type,
+          course_id: course_id || null,
+          metadata: {
+            provider: 'cloudpayments',
+            tier,
+            description,
+          },
+        });
+
+        if (dbError) {
+          console.error('Database error inserting payment:', dbError);
+          return new Response(
+            JSON.stringify({
+              error: 'Failed to create payment record',
+              details: dbError.message
+            }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
+      } catch (err) {
+        console.error('Exception inserting payment:', err);
+        return new Response(
+          JSON.stringify({
+            error: 'Failed to create payment record',
+            details: err.message
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      console.log('Payment record created successfully');
 
       return new Response(
         JSON.stringify({
