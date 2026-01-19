@@ -108,30 +108,53 @@ export default function PaymentButton({
           return;
         }
 
-        const widget = new window.cp.CloudPayments();
-        widget.pay('charge', {
-          publicId: data.widget_data.publicId,
-          description: data.widget_data.description,
-          amount: data.widget_data.amount,
-          currency: data.widget_data.currency,
-          invoiceId: data.widget_data.invoiceId,
-          accountId: data.widget_data.accountId,
-          email: data.widget_data.email,
-          data: data.widget_data.data,
-        }, {
-          onSuccess: (options: any) => {
-            console.log('Payment successful:', options);
-            window.location.href = '/payment-success';
-          },
-          onFail: (reason: string, options: any) => {
-            console.error('Payment failed:', reason, options);
-            setError(`Ошибка оплаты: ${reason}`);
-            setLoading(false);
-          },
-          onComplete: (paymentResult: any, options: any) => {
-            console.log('Payment complete:', paymentResult, options);
-          }
-        });
+        console.log('Creating CloudPayments widget...');
+        console.log('window.cp:', window.cp);
+        console.log('window.cp.CloudPayments:', window.cp.CloudPayments);
+
+        try {
+          const widget = new window.cp.CloudPayments();
+          console.log('Widget created:', widget);
+          console.log('About to call widget.pay with params:', {
+            publicId: data.widget_data.publicId,
+            description: data.widget_data.description,
+            amount: data.widget_data.amount,
+            currency: data.widget_data.currency,
+            invoiceId: data.widget_data.invoiceId,
+          });
+
+          widget.pay('charge', {
+            publicId: data.widget_data.publicId,
+            description: data.widget_data.description,
+            amount: data.widget_data.amount,
+            currency: data.widget_data.currency,
+            invoiceId: data.widget_data.invoiceId,
+            accountId: data.widget_data.accountId,
+            email: data.widget_data.email,
+            data: data.widget_data.data,
+          }, {
+            onSuccess: (options: any) => {
+              console.log('Payment successful:', options);
+              setLoading(false);
+              window.location.href = '/payment-success';
+            },
+            onFail: (reason: string, options: any) => {
+              console.error('Payment failed:', reason, options);
+              setError(`Ошибка оплаты: ${reason}`);
+              setLoading(false);
+            },
+            onComplete: (paymentResult: any, options: any) => {
+              console.log('Payment complete:', paymentResult, options);
+            }
+          });
+
+          console.log('widget.pay called successfully');
+          setLoading(false);
+        } catch (err) {
+          console.error('Error with CloudPayments widget:', err);
+          setError('Ошибка при открытии окна оплаты: ' + (err as Error).message);
+          setLoading(false);
+        }
         return;
       } else if (data.confirmation_url) {
         window.location.href = data.confirmation_url;
