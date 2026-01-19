@@ -399,6 +399,7 @@ function Footer({ onNavigate }: { onNavigate: (p: PageType) => void }) {
         </div>
         <div className="border-t border-gray-800 mt-12 pt-8 text-center">
           <p className="text-sm text-gray-400">© DreamStudy 2015-2026. Все права защищены.</p>
+          <p className="text-xs text-gray-500 mt-2">ИП Слесарев Павел Сергеевич ИНН 631600573057 ОГРНИП 319631300174973</p>
         </div>
       </div>
     </footer>
