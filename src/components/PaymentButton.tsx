@@ -138,35 +138,65 @@ export default function PaymentButton({
 
           const callbacks = {
             onSuccess: async function(options: any) {
-              console.log('Payment successful:', options);
+              console.log('[PaymentButton] CloudPayments success callback:', options);
+              console.log('[PaymentButton] Invoice ID:', invoiceId);
 
               try {
                 const { data: { session } } = await supabase.auth.getSession();
 
-                if (session) {
-                  const confirmUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/confirm-payment`;
-
-                  console.log('Calling confirm-payment with invoice ID:', invoiceId);
-                  const confirmResponse = await fetch(confirmUrl, {
-                    method: 'POST',
-                    headers: {
-                      'Authorization': `Bearer ${session.access_token}`,
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      payment_id: invoiceId,
-                    }),
-                  });
-
-                  const confirmResult = await confirmResponse.json();
-                  console.log('Confirm payment result:', confirmResult);
-
-                  if (confirmResult.success) {
-                    await refreshProfile();
-                  }
+                if (!session) {
+                  console.error('[PaymentButton] No session found after payment');
+                  alert('Ошибка: сессия истекла. Пожалуйста, войдите снова.');
+                  setLoading(false);
+                  return;
                 }
+
+                console.log('[PaymentButton] Session found, calling confirm-payment');
+
+                const confirmUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/confirm-payment`;
+
+                console.log('[PaymentButton] Confirm URL:', confirmUrl);
+                console.log('[PaymentButton] Payment ID:', invoiceId);
+
+                const confirmResponse = await fetch(confirmUrl, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    payment_id: invoiceId,
+                  }),
+                });
+
+                console.log('[PaymentButton] Confirm response status:', confirmResponse.status);
+
+                if (!confirmResponse.ok) {
+                  const errorText = await confirmResponse.text();
+                  console.error('[PaymentButton] Confirm payment failed:', errorText);
+                  alert(`Ошибка подтверждения платежа: ${errorText}`);
+                  setLoading(false);
+                  return;
+                }
+
+                const confirmResult = await confirmResponse.json();
+                console.log('[PaymentButton] Confirm payment result:', confirmResult);
+
+                if (!confirmResult.success) {
+                  console.error('[PaymentButton] Payment confirmation returned false');
+                  alert(`Ошибка: ${confirmResult.error || 'Не удалось подтвердить платеж'}`);
+                  setLoading(false);
+                  return;
+                }
+
+                console.log('[PaymentButton] Payment confirmed successfully, refreshing profile');
+                await refreshProfile();
+                console.log('[PaymentButton] Profile refreshed, redirecting');
               } catch (err) {
-                console.error('Error confirming payment:', err);
+                console.error('[PaymentButton] Error confirming payment:', err);
+                alert(`Ошибка при обработке платежа: ${(err as Error).message}`);
+                setLoading(false);
+                return;
               }
 
               setLoading(false);

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Calendar, Crown, BookOpen, CheckCircle } from 'lucide-react';
+import PendingPayments from './PendingPayments';
 
 interface Subscription {
   id: string;
@@ -147,6 +148,8 @@ export default function UserProfile() {
           <h1 className="text-3xl font-bold text-slate-900">Мой профиль</h1>
           <p className="text-slate-600 mt-2">Управление подпиской и курсами</p>
         </div>
+
+        <PendingPayments />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1">
