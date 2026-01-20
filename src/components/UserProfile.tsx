@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Calendar, Crown, BookOpen, CheckCircle, RefreshCw } from 'lucide-react';
+import { Calendar, Crown, BookOpen } from 'lucide-react';
 
 interface Subscription {
   id: string;
@@ -23,31 +23,15 @@ interface CoursePurchase {
   };
 }
 
-interface CourseProgress {
-  course_id: string;
-  total_lessons: number;
-  completed_lessons: number;
-  progress_percentage: number;
-}
-
 export default function UserProfile() {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [purchases, setPurchases] = useState<CoursePurchase[]>([]);
-  const [courseProgress, setCourseProgress] = useState<Record<string, CourseProgress>>({});
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  console.log('=== UserProfile component rendered ===');
-  console.log('User:', user);
 
   useEffect(() => {
-    console.log('=== UserProfile useEffect triggered ===');
-    console.log('User in useEffect:', user);
     if (user) {
       loadUserData();
-    } else {
-      console.log('No user found in useEffect');
     }
   }, [user]);
 
@@ -55,19 +39,12 @@ export default function UserProfile() {
     try {
       setLoading(true);
 
-      console.log('=== UserProfile: loadUserData started ===');
-      console.log('User ID:', user!.id);
-      console.log('User Email:', user!.email);
-
-      console.log('Fetching profile...');
       const profileResult = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user!.id)
         .single();
-      console.log('Profile result:', profileResult);
 
-      console.log('Fetching subscription...');
       const subscriptionResult = await supabase
         .from('user_subscriptions')
         .select('*')
@@ -75,9 +52,7 @@ export default function UserProfile() {
         .eq('is_active', true)
         .order('created_at', { ascending: false })
         .maybeSingle();
-      console.log('Subscription result:', subscriptionResult);
 
-      console.log('Fetching purchases...');
       const purchasesResult = await supabase
         .from('course_purchases')
         .select(`
@@ -93,12 +68,8 @@ export default function UserProfile() {
         `)
         .eq('user_id', user!.id)
         .order('purchased_at', { ascending: false });
-      console.log('Purchases result:', purchasesResult);
-      console.log('Purchases data:', purchasesResult.data);
-      console.log('Purchases error:', purchasesResult.error);
 
       const isAdmin = profileResult.data?.role === 'admin';
-      console.log('Is Admin:', isAdmin);
 
       if (subscriptionResult.data) {
         setSubscription(subscriptionResult.data);
@@ -124,82 +95,15 @@ export default function UserProfile() {
           }));
 
           setPurchases(adminPurchases as any);
-          const courseIds = allCourses.map(c => c.id);
-          console.log('Admin: Loading progress for all courses:', courseIds);
-          await loadCourseProgress(courseIds);
         }
       } else if (purchasesResult.data && purchasesResult.data.length > 0) {
         setPurchases(purchasesResult.data as any);
-        const courseIds = purchasesResult.data.map(p => p.course_id);
-        console.log('Loading progress for courses:', courseIds);
-        await loadCourseProgress(courseIds);
-      } else {
-        console.log('No purchases found');
-        setPurchases([]);
-        setCourseProgress({});
       }
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadCourseProgress = async (courseIds: string[]) => {
-    try {
-      const progressMap: Record<string, CourseProgress> = {};
-
-      console.log('Loading progress for user:', user!.id);
-      console.log('Course IDs:', courseIds);
-
-      for (const courseId of courseIds) {
-        const [lessonsResult, progressResult] = await Promise.all([
-          supabase
-            .from('course_lessons')
-            .select('id')
-            .eq('course_id', courseId)
-            .eq('is_published', true),
-          supabase
-            .from('lesson_progress')
-            .select('*')
-            .eq('user_id', user!.id)
-            .eq('course_id', courseId)
-            .eq('is_completed', true)
-        ]);
-
-        const totalLessons = lessonsResult.data?.length || 0;
-        const completedLessons = progressResult.data?.length || 0;
-        const progressPercentage = totalLessons > 0
-          ? Math.round((completedLessons / totalLessons) * 100)
-          : 0;
-
-        console.log(`Course ${courseId}:`, {
-          totalLessons,
-          completedLessons,
-          progressPercentage,
-          lessons: lessonsResult.data?.map(l => l.id),
-          progress: progressResult.data
-        });
-
-        progressMap[courseId] = {
-          course_id: courseId,
-          total_lessons: totalLessons,
-          completed_lessons: completedLessons,
-          progress_percentage: progressPercentage
-        };
-      }
-
-      console.log('Final progress map:', progressMap);
-      setCourseProgress(progressMap);
-    } catch (error) {
-      console.error('Error loading course progress:', error);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadUserData();
-    setRefreshing(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -303,21 +207,11 @@ export default function UserProfile() {
 
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <BookOpen className="w-5 h-5 text-blue-600" />
-                  <h3 className="font-semibold text-slate-900 text-lg">
-                    Мои курсы
-                  </h3>
-                </div>
-                <button
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
-                  title="Обновить прогресс"
-                >
-                  <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-                </button>
+              <div className="flex items-center gap-3 mb-6">
+                <BookOpen className="w-5 h-5 text-blue-600" />
+                <h3 className="font-semibold text-slate-900 text-lg">
+                  Мои курсы
+                </h3>
               </div>
 
               {purchases.length > 0 ? (
@@ -344,32 +238,8 @@ export default function UserProfile() {
                         <p className="text-sm text-slate-600 line-clamp-2 mb-3">
                           {purchase.course.description}
                         </p>
-
-                        {courseProgress[purchase.course_id] && (
-                          <div className="mb-3">
-                            <div className="flex items-center justify-between text-xs text-slate-600 mb-1">
-                              <span>Прогресс</span>
-                              <span className="font-semibold">
-                                {courseProgress[purchase.course_id].progress_percentage}%
-                              </span>
-                            </div>
-                            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                              <div
-                                className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500 rounded-full"
-                                style={{ width: `${courseProgress[purchase.course_id].progress_percentage}%` }}
-                              />
-                            </div>
-                            <div className="text-xs text-slate-500 mt-1">
-                              {courseProgress[purchase.course_id].completed_lessons} из {courseProgress[purchase.course_id].total_lessons} уроков
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="flex items-center justify-between text-xs text-slate-500">
-                          <span>Куплен {formatDate(purchase.purchased_at)}</span>
-                          {courseProgress[purchase.course_id]?.progress_percentage === 100 && (
-                            <CheckCircle className="w-4 h-4 text-green-500" />
-                          )}
+                        <div className="text-xs text-slate-500">
+                          Куплен {formatDate(purchase.purchased_at)}
                         </div>
                       </div>
                     </a>

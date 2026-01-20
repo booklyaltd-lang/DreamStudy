@@ -45,17 +45,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    console.log('=== AuthContext: Initializing ===');
-
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session:', session);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        console.log('User found in session:', session.user.email);
         fetchProfile(session.user.id).then(() => setLoading(false));
       } else {
-        console.log('No user in session');
         setProfile(null);
         setLoading(false);
       }
@@ -63,17 +58,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       (() => {
-        console.log('=== Auth state changed ===');
-        console.log('Event:', event);
-        console.log('Session:', session);
-
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          console.log('User logged in:', session.user.email);
           fetchProfile(session.user.id).then(() => setLoading(false));
         } else {
-          console.log('User logged out');
           setProfile(null);
           setLoading(false);
         }
@@ -108,25 +97,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      console.log('=== AuthContext: Attempting sign in ===');
-      console.log('Email:', email);
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      console.log('Sign in response:', { data, error });
+      if (error) throw error;
 
-      if (error) {
-        console.error('Sign in error:', error);
-        throw error;
-      }
-
-      console.log('Sign in successful!');
       return { error: null };
     } catch (error) {
-      console.error('Sign in caught error:', error);
       return { error: error as Error };
     }
   };
