@@ -109,19 +109,31 @@ Deno.serve(async (req: Request) => {
     const tier = metadata.tier || 'basic';
     const courseId = payment.course_id;
 
+    console.log('Payment type:', paymentType);
+    console.log('Tier:', tier);
+    console.log('User ID:', user.id);
+
     if (paymentType === 'subscription' && tier) {
       const endDate = new Date();
       endDate.setMonth(endDate.getMonth() + 1);
 
-      const { data: existingSubscription } = await supabase
+      console.log('Processing subscription for user:', user.id, 'tier:', tier);
+      console.log('End date:', endDate.toISOString());
+
+      const { data: existingSubscription, error: subFetchError } = await supabase
         .from('user_subscriptions')
         .select('*')
         .eq('user_id', user.id)
         .eq('is_active', true)
         .maybeSingle();
 
+      if (subFetchError) {
+        console.error('Error fetching existing subscription:', subFetchError);
+      }
+
       if (existingSubscription) {
-        await supabase
+        console.log('Updating existing subscription:', existingSubscription.id);
+        const { error: subUpdateError } = await supabase
           .from('user_subscriptions')
           .update({
             tier: tier,
@@ -129,8 +141,15 @@ Deno.serve(async (req: Request) => {
             updated_at: new Date().toISOString(),
           })
           .eq('id', existingSubscription.id);
+
+        if (subUpdateError) {
+          console.error('Error updating subscription:', subUpdateError);
+        } else {
+          console.log('Subscription updated successfully');
+        }
       } else {
-        const { data: newSubscription } = await supabase
+        console.log('Creating new subscription');
+        const { data: newSubscription, error: subInsertError } = await supabase
           .from('user_subscriptions')
           .insert({
             user_id: user.id,
@@ -142,21 +161,38 @@ Deno.serve(async (req: Request) => {
           .select()
           .single();
 
+        if (subInsertError) {
+          console.error('Error inserting subscription:', subInsertError);
+        } else {
+          console.log('New subscription created:', newSubscription?.id);
+        }
+
         if (newSubscription) {
-          await supabase
+          const { error: paymentLinkError } = await supabase
             .from('payments')
             .update({ subscription_id: newSubscription.id })
             .eq('id', payment.id);
+
+          if (paymentLinkError) {
+            console.error('Error linking payment to subscription:', paymentLinkError);
+          }
         }
       }
 
-      await supabase
+      console.log('Updating profile for user:', user.id);
+      const { error: profileUpdateError } = await supabase
         .from('profiles')
         .update({
           subscription_tier: tier,
           subscription_expires_at: endDate.toISOString(),
         })
         .eq('id', user.id);
+
+      if (profileUpdateError) {
+        console.error('Error updating profile:', profileUpdateError);
+      } else {
+        console.log('Profile updated successfully');
+      }
     } else if (paymentType === 'course' && courseId) {
       await supabase
         .from('course_purchases')

@@ -119,12 +119,13 @@ export default function PaymentButton({
           console.log('Widget created:', widget);
           console.log('typeof widget.pay:', typeof widget.pay);
 
+          const invoiceId = data.widget_data.invoiceId;
           const payOptions = {
             publicId: data.widget_data.publicId,
             description: data.widget_data.description,
             amount: data.widget_data.amount,
             currency: data.widget_data.currency,
-            invoiceId: data.widget_data.invoiceId,
+            invoiceId: invoiceId,
             accountId: data.widget_data.accountId,
             email: data.widget_data.email,
             skin: "mini",
@@ -143,16 +144,20 @@ export default function PaymentButton({
                 if (session) {
                   const confirmUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/confirm-payment`;
 
-                  await fetch(confirmUrl, {
+                  console.log('Calling confirm-payment with invoice ID:', invoiceId);
+                  const confirmResponse = await fetch(confirmUrl, {
                     method: 'POST',
                     headers: {
                       'Authorization': `Bearer ${session.access_token}`,
                       'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                      payment_id: data.widget_data.invoiceId,
+                      payment_id: invoiceId,
                     }),
                   });
+
+                  const confirmResult = await confirmResponse.json();
+                  console.log('Confirm payment result:', confirmResult);
                 }
               } catch (err) {
                 console.error('Error confirming payment:', err);

@@ -2456,12 +2456,14 @@ function ProfilePage({ onNavigate, user }: { onNavigate: (p: PageType) => void; 
 }
 
 function PaymentSuccessPage({ onNavigate }: { onNavigate: (p: PageType) => void }) {
+  const { refreshProfile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('Проверяем статус платежа...');
 
   useEffect(() => {
     const checkPayment = async () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
+      await refreshProfile();
       setMessage('Платеж успешно обработан!');
       setLoading(false);
       setTimeout(() => {
@@ -2470,7 +2472,7 @@ function PaymentSuccessPage({ onNavigate }: { onNavigate: (p: PageType) => void 
     };
 
     checkPayment();
-  }, [onNavigate]);
+  }, [onNavigate, refreshProfile]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center px-4">
