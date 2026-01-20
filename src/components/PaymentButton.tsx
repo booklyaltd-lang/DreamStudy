@@ -58,39 +58,6 @@ export default function PaymentButton({
         return;
       }
 
-      if (amount === 0 && paymentType === 'course' && courseId) {
-        console.log('Free course detected, granting access directly');
-
-        const { data: existingPurchase } = await supabase
-          .from('course_purchases')
-          .select('id')
-          .eq('user_id', session.user.id)
-          .eq('course_id', courseId)
-          .maybeSingle();
-
-        if (!existingPurchase) {
-          const { error: purchaseError } = await supabase
-            .from('course_purchases')
-            .insert({
-              user_id: session.user.id,
-              course_id: courseId,
-              price_paid: 0,
-              purchased_at: new Date().toISOString(),
-            });
-
-          if (purchaseError) {
-            console.error('Failed to create free course purchase:', purchaseError);
-            setError('Ошибка при получении доступа к курсу');
-            setLoading(false);
-            return;
-          }
-        }
-
-        console.log('Free course access granted, redirecting...');
-        window.location.href = `/course/${courseId}`;
-        return;
-      }
-
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-payment`;
 
       const response = await fetch(apiUrl, {
@@ -236,10 +203,6 @@ export default function PaymentButton({
     }
   };
 
-  const displayButtonText = amount === 0 && paymentType === 'course'
-    ? 'Получить доступ'
-    : buttonText;
-
   return (
     <div>
       <button
@@ -248,7 +211,7 @@ export default function PaymentButton({
         className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition-colors ${
           disabled || loading
             ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            : amount === 0 ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-blue-600 text-white hover:bg-blue-700'
+            : 'bg-blue-600 text-white hover:bg-blue-700'
         } ${className}`}
       >
         {loading ? (
@@ -259,7 +222,7 @@ export default function PaymentButton({
         ) : (
           <>
             <CreditCard className="w-5 h-5" />
-            <span>{displayButtonText}</span>
+            <span>{buttonText}</span>
           </>
         )}
       </button>
