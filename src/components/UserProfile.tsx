@@ -38,9 +38,16 @@ export default function UserProfile() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  console.log('=== UserProfile component rendered ===');
+  console.log('User:', user);
+
   useEffect(() => {
+    console.log('=== UserProfile useEffect triggered ===');
+    console.log('User in useEffect:', user);
     if (user) {
       loadUserData();
+    } else {
+      console.log('No user found in useEffect');
     }
   }, [user]);
 
@@ -48,45 +55,50 @@ export default function UserProfile() {
     try {
       setLoading(true);
 
-      console.log('Loading data for user:', user!.id, user!.email);
+      console.log('=== UserProfile: loadUserData started ===');
+      console.log('User ID:', user!.id);
+      console.log('User Email:', user!.email);
 
-      const [profileResult, subscriptionResult, purchasesResult] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user!.id)
-          .single(),
-        supabase
-          .from('user_subscriptions')
-          .select('*')
-          .eq('user_id', user!.id)
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-          .maybeSingle(),
-        supabase
-          .from('course_purchases')
-          .select(`
-            id,
-            course_id,
-            purchased_at,
-            course:courses (
-              id,
-              title,
-              description,
-              thumbnail_url
-            )
-          `)
-          .eq('user_id', user!.id)
-          .order('purchased_at', { ascending: false })
-      ]);
-
-      const isAdmin = profileResult.data?.role === 'admin';
+      console.log('Fetching profile...');
+      const profileResult = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user!.id)
+        .single();
       console.log('Profile result:', profileResult);
-      console.log('Is Admin:', isAdmin);
+
+      console.log('Fetching subscription...');
+      const subscriptionResult = await supabase
+        .from('user_subscriptions')
+        .select('*')
+        .eq('user_id', user!.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .maybeSingle();
       console.log('Subscription result:', subscriptionResult);
+
+      console.log('Fetching purchases...');
+      const purchasesResult = await supabase
+        .from('course_purchases')
+        .select(`
+          id,
+          course_id,
+          purchased_at,
+          course:courses (
+            id,
+            title,
+            description,
+            thumbnail_url
+          )
+        `)
+        .eq('user_id', user!.id)
+        .order('purchased_at', { ascending: false });
       console.log('Purchases result:', purchasesResult);
       console.log('Purchases data:', purchasesResult.data);
       console.log('Purchases error:', purchasesResult.error);
+
+      const isAdmin = profileResult.data?.role === 'admin';
+      console.log('Is Admin:', isAdmin);
 
       if (subscriptionResult.data) {
         setSubscription(subscriptionResult.data);
