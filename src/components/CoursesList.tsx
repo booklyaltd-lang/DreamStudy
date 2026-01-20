@@ -33,28 +33,42 @@ export default function CoursesList({ onCourseSelect }: CoursesListProps) {
     try {
       setLoading(true);
 
-      const [coursesResult, purchasesResult] = await Promise.all([
-        supabase
-          .from('courses')
-          .select('*')
-          .eq('is_published', true)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('course_purchases')
-          .select('course_id')
-          .eq('user_id', user!.id)
-      ]);
+      console.log('=== CoursesList: Loading courses ===');
+      console.log('User ID:', user!.id);
+
+      const purchasesResult = await supabase
+        .from('course_purchases')
+        .select('course_id')
+        .eq('user_id', user!.id);
+
+      console.log('Purchases result:', purchasesResult);
+      console.log('Purchased course IDs:', purchasesResult.data?.map(p => p.course_id));
+
+      if (!purchasesResult.data || purchasesResult.data.length === 0) {
+        console.log('No purchases found');
+        setCourses([]);
+        setLoading(false);
+        return;
+      }
+
+      const purchasedIds = purchasesResult.data.map(p => p.course_id);
+
+      const coursesResult = await supabase
+        .from('courses')
+        .select('*')
+        .in('id', purchasedIds)
+        .eq('is_published', true)
+        .order('created_at', { ascending: false });
+
+      console.log('Courses result:', coursesResult);
 
       if (coursesResult.data) {
-        const purchasedIds = new Set(
-          purchasesResult.data?.map(p => p.course_id) || []
-        );
-
         const coursesWithPurchaseStatus = coursesResult.data.map(course => ({
           ...course,
-          is_purchased: purchasedIds.has(course.id)
+          is_purchased: true
         }));
 
+        console.log('Final courses with purchase status:', coursesWithPurchaseStatus);
         setCourses(coursesWithPurchaseStatus);
       }
     } catch (error) {
@@ -109,8 +123,8 @@ export default function CoursesList({ onCourseSelect }: CoursesListProps) {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Каталог курсов</h1>
-          <p className="text-slate-600 mt-2">Выберите курс для начала обучения</p>
+          <h1 className="text-3xl font-bold text-slate-900">Мои курсы</h1>
+          <p className="text-slate-600 mt-2">Ваши купленные курсы</p>
         </div>
 
         {courses.length > 0 ? (
@@ -184,7 +198,7 @@ export default function CoursesList({ onCourseSelect }: CoursesListProps) {
         ) : (
           <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
             <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <p className="text-slate-600">Курсы пока не добавлены</p>
+            <p className="text-slate-600">У вас пока нет купленных курсов</p>
           </div>
         )}
       </div>
