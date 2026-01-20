@@ -841,6 +841,42 @@ function UserSubscriptionModal({ user, onClose, onSave }: { user: any; onClose: 
 
       if (updateError) throw updateError;
 
+      if (tier !== 'free' && expiresAt) {
+        const { data: existingSubscription } = await supabase
+          .from('user_subscriptions')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (existingSubscription) {
+          await supabase
+            .from('user_subscriptions')
+            .update({
+              tier: tier,
+              end_date: new Date(expiresAt).toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingSubscription.id);
+        } else {
+          await supabase
+            .from('user_subscriptions')
+            .insert({
+              user_id: user.id,
+              tier: tier,
+              start_date: new Date().toISOString(),
+              end_date: new Date(expiresAt).toISOString(),
+              is_active: true,
+            });
+        }
+      } else if (tier === 'free') {
+        await supabase
+          .from('user_subscriptions')
+          .update({ is_active: false })
+          .eq('user_id', user.id)
+          .eq('is_active', true);
+      }
+
       onSave();
     } catch (err: any) {
       setError(err.message || 'Произошла ошибка при обновлении');

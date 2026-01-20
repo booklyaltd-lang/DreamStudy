@@ -150,33 +150,77 @@ Deno.serve(async (req: Request) => {
         const endDate = new Date();
         endDate.setMonth(endDate.getMonth() + 1);
 
-        const { error: subError } = await supabase.from('subscriptions').upsert({
-          user_id: userId,
-          tier: tier,
-          status: 'active',
-          start_date: new Date().toISOString(),
-          end_date: endDate.toISOString(),
-        }, {
-          onConflict: 'user_id',
-        });
+        const { data: existingSubscription } = await supabase
+          .from('user_subscriptions')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('is_active', true)
+          .maybeSingle();
 
-        if (subError) {
-          console.error('Failed to create subscription:', subError);
+        if (existingSubscription) {
+          const { error: updateError } = await supabase
+            .from('user_subscriptions')
+            .update({
+              tier: tier,
+              end_date: endDate.toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingSubscription.id);
+
+          if (updateError) {
+            console.error('Failed to update subscription:', updateError);
+          } else {
+            console.log('Subscription updated successfully');
+          }
         } else {
-          console.log('Subscription created successfully');
+          const { data: newSubscription, error: subError } = await supabase
+            .from('user_subscriptions')
+            .insert({
+              user_id: userId,
+              tier: tier,
+              start_date: new Date().toISOString(),
+              end_date: endDate.toISOString(),
+              is_active: true,
+            })
+            .select()
+            .single();
+
+          if (subError) {
+            console.error('Failed to create subscription:', subError);
+          } else {
+            console.log('Subscription created successfully');
+            if (newSubscription) {
+              await supabase
+                .from('payments')
+                .update({ subscription_id: newSubscription.id })
+                .eq('id', payment.id);
+            }
+          }
         }
+
+        await supabase
+          .from('profiles')
+          .update({
+            subscription_tier: tier,
+            subscription_expires_at: endDate.toISOString(),
+          })
+          .eq('id', userId);
       } else if (paymentType === 'course' && courseId) {
         const { error: purchaseError } = await supabase.from('course_purchases').insert({
           user_id: userId,
           course_id: courseId,
-          amount_paid: payment.amount,
-          payment_id: payment.id,
+          price_paid: parseFloat(payment.amount),
+          purchased_at: new Date().toISOString(),
         });
 
         if (purchaseError) {
           console.error('Failed to create course purchase:', purchaseError);
         } else {
           console.log('Course purchase created successfully');
+          await supabase
+            .from('payments')
+            .update({ course_id: courseId })
+            .eq('id', payment.id);
         }
       }
     }

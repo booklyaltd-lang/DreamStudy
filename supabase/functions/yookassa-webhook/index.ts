@@ -130,6 +130,14 @@ Deno.serve(async (req: Request) => {
               .eq('id', payment.id);
           }
         }
+
+        await supabase
+          .from('profiles')
+          .update({
+            subscription_tier: metadata.tier,
+            subscription_expires_at: endDate.toISOString(),
+          })
+          .eq('id', metadata.user_id);
       } else if (metadata.payment_type === 'course' && metadata.course_id) {
         const { error: purchaseError } = await supabase
           .from('course_purchases')

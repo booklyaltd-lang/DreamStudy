@@ -6,6 +6,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { Pagination } from './components/Pagination';
 import { Breadcrumbs } from './components/Breadcrumbs';
 import { ContentProtection } from './components/ContentProtection';
+import { SubscriptionStatus } from './components/SubscriptionStatus';
 import { useSiteSettings } from './contexts/SiteSettingsContext';
 import { useAuth } from './contexts/AuthContext';
 import UserProfile from './components/UserProfile';
@@ -1740,6 +1741,10 @@ function DashboardPage({ onNavigate, user }: { onNavigate: (p: PageType, d?: any
               <div className="text-sm text-gray-600">{stat.label}</div>
             </div>
           ))}
+        </div>
+
+        <div className="mb-8">
+          <SubscriptionStatus userId={user.id} />
         </div>
 
         <div className="bg-white rounded-xl shadow-sm p-6">
