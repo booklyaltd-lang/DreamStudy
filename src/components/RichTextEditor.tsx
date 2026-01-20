@@ -21,6 +21,7 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
   const [showImageSizeMenu, setShowImageSizeMenu] = useState(false);
   const [imageSize, setImageSize] = useState<ImageSize>('100');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const getImageWidthClass = (size: ImageSize) => {
     switch (size) {
@@ -36,7 +37,7 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
     e.preventDefault();
     e.stopPropagation();
 
-    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+    const textarea = textareaRef.current;
     if (!textarea) return;
 
     const start = textarea.selectionStart;
@@ -118,7 +119,7 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
         return;
       }
 
-      const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+      const textarea = textareaRef.current;
       if (!textarea) return;
 
       const start = textarea.selectionStart;
@@ -145,7 +146,7 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
       const html = prompt('Вставьте HTML код:');
       if (!html) return;
 
-      const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+      const textarea = textareaRef.current;
       if (!textarea) return;
 
       const start = textarea.selectionStart;
@@ -204,7 +205,7 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
         .from('content-images')
         .getPublicUrl(filePath);
 
-      const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+      const textarea = textareaRef.current;
       if (textarea) {
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
@@ -373,6 +374,7 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
 
         {mode === 'edit' ? (
           <textarea
+            ref={textareaRef}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
