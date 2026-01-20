@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { User as AuthUser } from '@supabase/supabase-js';
 import { Users, BookOpen, FileText, Settings, Plus, CreditCard as Edit, Trash2, Eye, ArrowLeft, Shield, AlertCircle, ListVideo, DollarSign } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
@@ -7,11 +6,7 @@ import { BlogEditor } from './BlogEditor';
 import { SettingsEditor } from './SettingsEditor';
 import { LessonsManagement } from './LessonsManagement';
 import { FinancialManagement } from './FinancialManagement';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+import { supabase } from '../lib/supabase';
 
 // Transliteration map for Cyrillic to Latin
 const translitMap: { [key: string]: string } = {

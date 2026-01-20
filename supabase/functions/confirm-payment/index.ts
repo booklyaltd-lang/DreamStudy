@@ -19,12 +19,9 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('Missing authorization header');
       return new Response(
         JSON.stringify({ error: 'Missing authorization header' }),
         {
@@ -34,18 +31,34 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    console.log('Verifying token:', token.substring(0, 20) + '...');
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+
+    console.log('User verification result:', { user: user?.id, error: userError?.message });
 
     if (userError || !user) {
+      console.error('Invalid token:', userError?.message);
       return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
+        JSON.stringify({ error: 'Invalid token', details: userError?.message }),
         {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
+
+    console.log('User authenticated:', user.id);
 
     const body: ConfirmPaymentRequest = await req.json();
     const { payment_id } = body;
@@ -60,7 +73,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: payment, error: fetchError } = await supabase
+    const { data: payment, error: fetchError } = await supabaseClient
       .from('payments')
       .select('*')
       .eq('yookassa_payment_id', payment_id)
@@ -88,7 +101,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseClient
       .from('payments')
       .update({ status: 'succeeded' })
       .eq('id', payment.id);
@@ -120,7 +133,7 @@ Deno.serve(async (req: Request) => {
       console.log('Processing subscription for user:', user.id, 'tier:', tier);
       console.log('End date:', endDate.toISOString());
 
-      const { data: existingSubscription, error: subFetchError } = await supabase
+      const { data: existingSubscription, error: subFetchError } = await supabaseClient
         .from('user_subscriptions')
         .select('*')
         .eq('user_id', user.id)
@@ -140,7 +153,7 @@ Deno.serve(async (req: Request) => {
 
       if (existingSubscription) {
         console.log('Updating existing subscription:', existingSubscription.id);
-        const { error: subUpdateError } = await supabase
+        const { error: subUpdateError } = await supabaseClient
           .from('user_subscriptions')
           .update({
             tier: tier,
@@ -162,7 +175,7 @@ Deno.serve(async (req: Request) => {
         console.log('Subscription updated successfully');
       } else {
         console.log('Creating new subscription');
-        const { data: newSubscription, error: subInsertError } = await supabase
+        const { data: newSubscription, error: subInsertError } = await supabaseClient
           .from('user_subscriptions')
           .insert({
             user_id: user.id,
@@ -187,7 +200,7 @@ Deno.serve(async (req: Request) => {
         console.log('New subscription created:', newSubscription?.id);
 
         if (newSubscription) {
-          const { error: paymentLinkError } = await supabase
+          const { error: paymentLinkError } = await supabaseClient
             .from('payments')
             .update({ subscription_id: newSubscription.id })
             .eq('id', payment.id);
@@ -199,7 +212,7 @@ Deno.serve(async (req: Request) => {
       }
 
       console.log('Updating profile for user:', user.id);
-      const { error: profileUpdateError } = await supabase
+      const { error: profileUpdateError } = await supabaseClient
         .from('profiles')
         .update({
           subscription_tier: tier,
@@ -220,7 +233,7 @@ Deno.serve(async (req: Request) => {
       console.log('Profile updated successfully');
     } else if (paymentType === 'course' && courseId) {
       console.log('Creating course purchase for user:', user.id, 'course:', courseId);
-      const { error: purchaseError } = await supabase
+      const { error: purchaseError } = await supabaseClient
         .from('course_purchases')
         .insert({
           user_id: user.id,
@@ -241,7 +254,7 @@ Deno.serve(async (req: Request) => {
       }
       console.log('Course purchase created successfully');
 
-      const { error: paymentLinkError } = await supabase
+      const { error: paymentLinkError } = await supabaseClient
         .from('payments')
         .update({ course_id: courseId })
         .eq('id', payment.id);

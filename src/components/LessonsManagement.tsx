@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { Plus, Edit, Trash2, ArrowLeft, Video, Clock, Eye, EyeOff } from 'lucide-react';
 import { LessonEditor } from './LessonEditor';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+import { supabase } from '../lib/supabase';
 
 interface LessonsManagementProps {
   course: any;
