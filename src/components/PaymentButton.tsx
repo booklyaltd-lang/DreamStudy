@@ -142,16 +142,19 @@ export default function PaymentButton({
               console.log('[PaymentButton] Invoice ID:', invoiceId);
 
               try {
-                const { data: { session } } = await supabase.auth.getSession();
+                console.log('[PaymentButton] Refreshing session to get fresh token...');
+                const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
 
-                if (!session) {
-                  console.error('[PaymentButton] No session found after payment');
-                  alert('Ошибка: сессия истекла. Пожалуйста, войдите снова.');
+                if (sessionError || !session) {
+                  console.error('[PaymentButton] Failed to refresh session:', sessionError);
+                  alert('Ошибка: не удалось обновить сессию. Пожалуйста, войдите снова и попробуйте подтвердить платеж вручную через профиль.');
                   setLoading(false);
+                  window.location.href = '/profile';
                   return;
                 }
 
-                console.log('[PaymentButton] Session found, calling confirm-payment');
+                console.log('[PaymentButton] Session refreshed successfully');
+                console.log('[PaymentButton] Access token:', session.access_token.substring(0, 20) + '...');
 
                 const confirmUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/confirm-payment`;
 
@@ -170,12 +173,14 @@ export default function PaymentButton({
                 });
 
                 console.log('[PaymentButton] Confirm response status:', confirmResponse.status);
+                console.log('[PaymentButton] Confirm response headers:', Object.fromEntries(confirmResponse.headers.entries()));
 
                 if (!confirmResponse.ok) {
                   const errorText = await confirmResponse.text();
                   console.error('[PaymentButton] Confirm payment failed:', errorText);
-                  alert(`Ошибка подтверждения платежа: ${errorText}`);
+                  alert(`Ошибка подтверждения платежа (${confirmResponse.status}): Перейдите в профиль и нажмите кнопку "Подтвердить" для завершения оплаты.`);
                   setLoading(false);
+                  window.location.href = '/profile';
                   return;
                 }
 
@@ -184,8 +189,9 @@ export default function PaymentButton({
 
                 if (!confirmResult.success) {
                   console.error('[PaymentButton] Payment confirmation returned false');
-                  alert(`Ошибка: ${confirmResult.error || 'Не удалось подтвердить платеж'}`);
+                  alert(`Ошибка: ${confirmResult.error || 'Не удалось подтвердить платеж'}. Перейдите в профиль для ручного подтверждения.`);
                   setLoading(false);
+                  window.location.href = '/profile';
                   return;
                 }
 
@@ -194,8 +200,9 @@ export default function PaymentButton({
                 console.log('[PaymentButton] Profile refreshed, redirecting');
               } catch (err) {
                 console.error('[PaymentButton] Error confirming payment:', err);
-                alert(`Ошибка при обработке платежа: ${(err as Error).message}`);
+                alert(`Ошибка при обработке платежа: ${(err as Error).message}. Перейдите в профиль для ручного подтверждения.`);
                 setLoading(false);
+                window.location.href = '/profile';
                 return;
               }
 
