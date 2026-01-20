@@ -37,17 +37,23 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
     try {
       setLoading(true);
 
-      const [courseResult, enrollmentResult, lessonsResult, progressResult] = await Promise.all([
+      const [courseResult, purchaseResult, subscriptionResult, lessonsResult, progressResult] = await Promise.all([
         supabase
           .from('courses')
           .select('*')
           .eq('id', courseId)
           .single(),
         supabase
-          .from('enrollments')
+          .from('course_purchases')
           .select('id')
           .eq('user_id', user!.id)
           .eq('course_id', courseId)
+          .maybeSingle(),
+        supabase
+          .from('user_subscriptions')
+          .select('id, tier')
+          .eq('user_id', user!.id)
+          .eq('is_active', true)
           .maybeSingle(),
         supabase
           .from('course_lessons')
@@ -66,7 +72,9 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
         setCourse(courseResult.data);
       }
 
-      const isEnrolled = !!enrollmentResult.data;
+      const hasPurchased = !!purchaseResult.data;
+      const hasActiveSubscription = !!subscriptionResult.data;
+      const isEnrolled = hasPurchased || hasActiveSubscription;
       setHasAccess(isEnrolled);
 
       if (lessonsResult.data) {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Calendar, Crown, BookOpen, CheckCircle } from 'lucide-react';
+import { Calendar, Crown, BookOpen, CheckCircle, RefreshCw } from 'lucide-react';
 
 interface Subscription {
   id: string;
@@ -36,6 +36,7 @@ export default function UserProfile() {
   const [purchases, setPurchases] = useState<CoursePurchase[]>([]);
   const [courseProgress, setCourseProgress] = useState<Record<string, CourseProgress>>({});
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -96,7 +97,8 @@ export default function UserProfile() {
           supabase
             .from('course_lessons')
             .select('id', { count: 'exact', head: true })
-            .eq('course_id', courseId),
+            .eq('course_id', courseId)
+            .eq('is_published', true),
           supabase
             .from('lesson_progress')
             .select('lesson_id', { count: 'exact', head: true })
@@ -111,6 +113,8 @@ export default function UserProfile() {
           ? Math.round((completedLessons / totalLessons) * 100)
           : 0;
 
+        console.log(`Course ${courseId}: ${completedLessons}/${totalLessons} lessons (${progressPercentage}%)`);
+
         progressMap[courseId] = {
           course_id: courseId,
           total_lessons: totalLessons,
@@ -123,6 +127,12 @@ export default function UserProfile() {
     } catch (error) {
       console.error('Error loading course progress:', error);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadUserData();
+    setRefreshing(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -226,11 +236,21 @@ export default function UserProfile() {
 
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <BookOpen className="w-5 h-5 text-blue-600" />
-                <h3 className="font-semibold text-slate-900 text-lg">
-                  Мои курсы
-                </h3>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <BookOpen className="w-5 h-5 text-blue-600" />
+                  <h3 className="font-semibold text-slate-900 text-lg">
+                    Мои курсы
+                  </h3>
+                </div>
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                  title="Обновить прогресс"
+                >
+                  <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+                </button>
               </div>
 
               {purchases.length > 0 ? (
