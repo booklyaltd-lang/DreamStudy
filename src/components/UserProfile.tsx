@@ -23,10 +23,18 @@ interface CoursePurchase {
   };
 }
 
+interface CourseProgress {
+  course_id: string;
+  total_lessons: number;
+  completed_lessons: number;
+  progress_percentage: number;
+}
+
 export default function UserProfile() {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [purchases, setPurchases] = useState<CoursePurchase[]>([]);
+  const [courseProgress, setCourseProgress] = useState<Record<string, CourseProgress>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -70,11 +78,50 @@ export default function UserProfile() {
 
       if (purchasesResult.data) {
         setPurchases(purchasesResult.data as any);
+        await loadCourseProgress(purchasesResult.data.map(p => p.course_id));
       }
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCourseProgress = async (courseIds: string[]) => {
+    try {
+      const progressMap: Record<string, CourseProgress> = {};
+
+      for (const courseId of courseIds) {
+        const [lessonsResult, completedResult] = await Promise.all([
+          supabase
+            .from('course_lessons')
+            .select('id', { count: 'exact', head: true })
+            .eq('course_id', courseId),
+          supabase
+            .from('lesson_progress')
+            .select('lesson_id', { count: 'exact', head: true })
+            .eq('user_id', user!.id)
+            .eq('course_id', courseId)
+            .eq('is_completed', true)
+        ]);
+
+        const totalLessons = lessonsResult.count || 0;
+        const completedLessons = completedResult.count || 0;
+        const progressPercentage = totalLessons > 0
+          ? Math.round((completedLessons / totalLessons) * 100)
+          : 0;
+
+        progressMap[courseId] = {
+          course_id: courseId,
+          total_lessons: totalLessons,
+          completed_lessons: completedLessons,
+          progress_percentage: progressPercentage
+        };
+      }
+
+      setCourseProgress(progressMap);
+    } catch (error) {
+      console.error('Error loading course progress:', error);
     }
   };
 
@@ -210,9 +257,32 @@ export default function UserProfile() {
                         <p className="text-sm text-slate-600 line-clamp-2 mb-3">
                           {purchase.course.description}
                         </p>
+
+                        {courseProgress[purchase.course_id] && (
+                          <div className="mb-3">
+                            <div className="flex items-center justify-between text-xs text-slate-600 mb-1">
+                              <span>Прогресс</span>
+                              <span className="font-semibold">
+                                {courseProgress[purchase.course_id].progress_percentage}%
+                              </span>
+                            </div>
+                            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500 rounded-full"
+                                style={{ width: `${courseProgress[purchase.course_id].progress_percentage}%` }}
+                              />
+                            </div>
+                            <div className="text-xs text-slate-500 mt-1">
+                              {courseProgress[purchase.course_id].completed_lessons} из {courseProgress[purchase.course_id].total_lessons} уроков
+                            </div>
+                          </div>
+                        )}
+
                         <div className="flex items-center justify-between text-xs text-slate-500">
                           <span>Куплен {formatDate(purchase.purchased_at)}</span>
-                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          {courseProgress[purchase.course_id]?.progress_percentage === 100 && (
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                          )}
                         </div>
                       </div>
                     </a>
