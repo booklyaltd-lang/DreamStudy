@@ -134,8 +134,30 @@ export default function PaymentButton({
           console.log('Pay options:', payOptions);
 
           const callbacks = {
-            onSuccess: function(options: any) {
+            onSuccess: async function(options: any) {
               console.log('Payment successful:', options);
+
+              try {
+                const { data: { session } } = await supabase.auth.getSession();
+
+                if (session) {
+                  const confirmUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/confirm-payment`;
+
+                  await fetch(confirmUrl, {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${session.access_token}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      payment_id: data.widget_data.invoiceId,
+                    }),
+                  });
+                }
+              } catch (err) {
+                console.error('Error confirming payment:', err);
+              }
+
               setLoading(false);
               window.location.href = '/payment-success';
             },
