@@ -1936,7 +1936,7 @@ function SignInPage({ onNavigate }: { onNavigate: (p: PageType) => void }) {
     try {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) throw signInError;
-      onNavigate('dashboard');
+      onNavigate('my-courses');
     } catch (err: any) {
       setError(err.message);
     } finally {
