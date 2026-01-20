@@ -46,25 +46,48 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
     const after = value.substring(end);
 
     let newText = '';
+    let cursorPosition = start;
+
     if (tag === 'img') {
       const widthClass = getImageWidthClass(imageSize);
       newText = `${before}<img src="${selectedText ||'url'}" alt="описание" class="${widthClass} rounded-lg my-4" />${after}`;
+      cursorPosition = newText.length - after.length;
     } else if (tag === 'video') {
       newText = `${before}<div class="aspect-video my-4"><iframe src="${selectedText || 'https://www.youtube-nocookie.com/embed/VIDEO_ID'}" class="w-full h-full rounded-lg" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>${after}`;
+      cursorPosition = newText.length - after.length;
     } else if (tag === 'a') {
       newText = `${before}<a href="${selectedText || 'url'}" class="text-blue-600 hover:underline">${selectedText || 'текст ссылки'}</a>${after}`;
+      cursorPosition = newText.length - after.length;
     } else if (tag === 'ul' || tag === 'ol') {
       const items = selectedText.split('\n').filter(l => l.trim());
       const listItems = items.map(item => `  <li>${item.trim()}</li>`).join('\n');
       newText = `${before}<${tag} class="list-disc ml-6 my-4">\n${listItems || '  <li>Элемент списка</li>'}\n</${tag}>${after}`;
+      cursorPosition = newText.length - after.length;
+    } else if (tag === 'h2' || tag === 'h3') {
+      if (selectedText) {
+        newText = `${before}<${tag}${attributes || ''}>${selectedText}</${tag}>${after}`;
+        cursorPosition = newText.length - after.length;
+      } else {
+        newText = `${before}<${tag}${attributes || ''}>Заголовок</${tag}>${after}`;
+        cursorPosition = before.length + `<${tag}${attributes || ''}>`.length + 'Заголовок'.length;
+      }
+    } else if (tag === 'strong' || tag === 'em') {
+      if (selectedText) {
+        newText = `${before}<${tag}>${selectedText}</${tag}>${after}`;
+        cursorPosition = newText.length - after.length;
+      } else {
+        newText = `${before}<${tag}>текст</${tag}>${after}`;
+        cursorPosition = before.length + `<${tag}>`.length + 'текст'.length;
+      }
     } else {
       newText = `${before}<${tag}${attributes || ''}>${selectedText || 'текст'}</${tag}>${after}`;
+      cursorPosition = newText.length - after.length;
     }
 
     onChange(newText);
     setTimeout(() => {
       textarea.focus();
-      textarea.setSelectionRange(start, newText.length - after.length);
+      textarea.setSelectionRange(cursorPosition, cursorPosition);
     }, 0);
   };
 
@@ -205,8 +228,29 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
     }
   };
 
+  const convertNewlinesToBr = (text: string) => {
+    return text.replace(/\n/g, '<br>');
+  };
+
   const renderPreview = () => {
-    return <div className="prose max-w-none p-4" dangerouslySetInnerHTML={{ __html: value }} />;
+    const htmlContent = convertNewlinesToBr(value);
+    return <div className="prose max-w-none p-4" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const textarea = e.currentTarget;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const before = value.substring(0, start);
+      const after = value.substring(end);
+      const newText = `${before}\n${after}`;
+      onChange(newText);
+      setTimeout(() => {
+        textarea.setSelectionRange(start + 1, start + 1);
+      }, 0);
+    }
   };
 
   return (
@@ -331,6 +375,7 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
           <textarea
             value={value}
             onChange={(e) => onChange(e.target.value)}
+            onKeyDown={handleKeyDown}
             className="w-full min-h-[400px] p-4 font-mono text-sm resize-y focus:outline-none"
             placeholder="Начните писать контент..."
           />
@@ -344,6 +389,7 @@ export function RichTextEditor({ value, onChange, label }: RichTextEditorProps) 
       <div className="text-sm text-gray-600">
         <p className="font-medium mb-1">Подсказки:</p>
         <ul className="space-y-1 text-xs">
+          <li>• Нажмите Enter для переноса строки (автоматически преобразуется в &lt;br&gt;)</li>
           <li>• Выделите текст и нажмите кнопку для форматирования</li>
           <li>• Выберите размер изображения (25%, 50%, 75%, 100%) перед загрузкой</li>
           <li>• Нажмите на иконку изображения для загрузки с компьютера</li>

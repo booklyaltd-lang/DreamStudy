@@ -1336,6 +1336,15 @@ function BlogPostPage({ post, onNavigate }: { post: any; onNavigate: (p: PageTyp
     return date.toLocaleDateString('ru-RU', { month: 'long', day: 'numeric', year: 'numeric' });
   };
 
+  const convertNewlinesToBr = (text: string) => {
+    return text.replace(/\n/g, '<br>');
+  };
+
+  const getContentHtml = () => {
+    const rawContent = post.content_html || post.content || '';
+    return convertNewlinesToBr(rawContent);
+  };
+
   const getShareUrl = () => {
     return getFullUrl(`/blog/${post.slug}`);
   };
@@ -1516,7 +1525,7 @@ function BlogPostPage({ post, onNavigate }: { post: any; onNavigate: (p: PageTyp
 
               <div
                 className="prose prose-lg max-w-none text-gray-700 leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: post.content_html || post.content || '' }}
+                dangerouslySetInnerHTML={{ __html: getContentHtml() }}
               />
             </div>
 

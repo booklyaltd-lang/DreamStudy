@@ -143,6 +143,10 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
     }
   };
 
+  const convertNewlinesToBr = (text: string) => {
+    return text.replace(/\n/g, '<br>');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -263,7 +267,7 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
                       <h3 className="text-lg font-semibold text-slate-900 mb-3">Содержание урока</h3>
                       <div
                         className="prose prose-slate max-w-none text-slate-700 leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: selectedLesson.description }}
+                        dangerouslySetInnerHTML={{ __html: convertNewlinesToBr(selectedLesson.description) }}
                       />
                     </div>
                   )}
