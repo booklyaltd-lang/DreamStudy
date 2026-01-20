@@ -5,6 +5,7 @@ import { ImageUploader } from './components/ImageUploader';
 import { AdminPanel } from './components/AdminPanel';
 import { Pagination } from './components/Pagination';
 import { Breadcrumbs } from './components/Breadcrumbs';
+import { ContentProtection } from './components/ContentProtection';
 import { useSiteSettings } from './contexts/SiteSettingsContext';
 import { useAuth } from './contexts/AuthContext';
 import UserProfile from './components/UserProfile';
@@ -214,6 +215,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ContentProtection />
       <Header onNavigate={handleNavigate} currentPage={currentPage} user={user} onSignOut={handleSignOut} />
       <main>{renderPage()}</main>
       <Footer onNavigate={handleNavigate} />
