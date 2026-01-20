@@ -48,6 +48,8 @@ export default function UserProfile() {
     try {
       setLoading(true);
 
+      console.log('Loading data for user:', user!.id, user!.email);
+
       const [profileResult, subscriptionResult, purchasesResult] = await Promise.all([
         supabase
           .from('profiles')
@@ -79,9 +81,12 @@ export default function UserProfile() {
       ]);
 
       const isAdmin = profileResult.data?.role === 'admin';
+      console.log('Profile result:', profileResult);
       console.log('Is Admin:', isAdmin);
-      console.log('Subscription:', subscriptionResult.data);
-      console.log('Purchases:', purchasesResult.data);
+      console.log('Subscription result:', subscriptionResult);
+      console.log('Purchases result:', purchasesResult);
+      console.log('Purchases data:', purchasesResult.data);
+      console.log('Purchases error:', purchasesResult.error);
 
       if (subscriptionResult.data) {
         setSubscription(subscriptionResult.data);
