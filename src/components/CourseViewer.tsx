@@ -37,11 +37,16 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
     try {
       setLoading(true);
 
-      const [courseResult, purchaseResult, subscriptionResult, lessonsResult, progressResult] = await Promise.all([
+      const [courseResult, profileResult, purchaseResult, subscriptionResult, lessonsResult, progressResult] = await Promise.all([
         supabase
           .from('courses')
           .select('*')
           .eq('id', courseId)
+          .single(),
+        supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user!.id)
           .single(),
         supabase
           .from('course_purchases')
@@ -72,9 +77,10 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
         setCourse(courseResult.data);
       }
 
+      const isAdmin = profileResult.data?.role === 'admin';
       const hasPurchased = !!purchaseResult.data;
       const hasActiveSubscription = !!subscriptionResult.data;
-      const isEnrolled = hasPurchased || hasActiveSubscription;
+      const isEnrolled = isAdmin || hasPurchased || hasActiveSubscription;
       setHasAccess(isEnrolled);
 
       if (lessonsResult.data) {

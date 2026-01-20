@@ -48,7 +48,12 @@ export default function UserProfile() {
     try {
       setLoading(true);
 
-      const [subscriptionResult, purchasesResult] = await Promise.all([
+      const [profileResult, subscriptionResult, purchasesResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user!.id)
+          .single(),
         supabase
           .from('user_subscriptions')
           .select('*')
@@ -73,13 +78,48 @@ export default function UserProfile() {
           .order('purchased_at', { ascending: false })
       ]);
 
+      const isAdmin = profileResult.data?.role === 'admin';
+      console.log('Is Admin:', isAdmin);
+      console.log('Subscription:', subscriptionResult.data);
+      console.log('Purchases:', purchasesResult.data);
+
       if (subscriptionResult.data) {
         setSubscription(subscriptionResult.data);
       }
 
-      if (purchasesResult.data) {
+      if (isAdmin) {
+        const { data: allCourses } = await supabase
+          .from('courses')
+          .select('id, title, description, thumbnail_url')
+          .order('created_at', { ascending: false });
+
+        if (allCourses && allCourses.length > 0) {
+          const adminPurchases = allCourses.map(course => ({
+            id: `admin-${course.id}`,
+            course_id: course.id,
+            purchased_at: new Date().toISOString(),
+            course: {
+              id: course.id,
+              title: course.title,
+              description: course.description,
+              thumbnail_url: course.thumbnail_url
+            }
+          }));
+
+          setPurchases(adminPurchases as any);
+          const courseIds = allCourses.map(c => c.id);
+          console.log('Admin: Loading progress for all courses:', courseIds);
+          await loadCourseProgress(courseIds);
+        }
+      } else if (purchasesResult.data && purchasesResult.data.length > 0) {
         setPurchases(purchasesResult.data as any);
-        await loadCourseProgress(purchasesResult.data.map(p => p.course_id));
+        const courseIds = purchasesResult.data.map(p => p.course_id);
+        console.log('Loading progress for courses:', courseIds);
+        await loadCourseProgress(courseIds);
+      } else {
+        console.log('No purchases found');
+        setPurchases([]);
+        setCourseProgress({});
       }
     } catch (error) {
       console.error('Error loading user data:', error);
