@@ -1,13 +1,8 @@
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { Save, Plus, Trash2, Facebook, Twitter, Linkedin, Instagram, Youtube, Send, Mail, MessageCircle, Phone } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { ImageUploader } from './ImageUploader';
 import { useSiteSettings } from '../contexts/SiteSettingsContext';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 interface SocialLink {
   platform: string;

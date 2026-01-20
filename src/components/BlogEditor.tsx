@@ -1,14 +1,9 @@
 import { useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { ArrowLeft } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { RichTextEditor } from './RichTextEditor';
 import { ImageUploader } from './ImageUploader';
 import { VideoUploader } from './VideoUploader';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 function generateSlug(title: string): string {
   const translitMap: { [key: string]: string } = {
