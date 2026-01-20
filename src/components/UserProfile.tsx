@@ -132,28 +132,37 @@ export default function UserProfile() {
     try {
       const progressMap: Record<string, CourseProgress> = {};
 
+      console.log('Loading progress for user:', user!.id);
+      console.log('Course IDs:', courseIds);
+
       for (const courseId of courseIds) {
-        const [lessonsResult, completedResult] = await Promise.all([
+        const [lessonsResult, progressResult] = await Promise.all([
           supabase
             .from('course_lessons')
-            .select('id', { count: 'exact', head: true })
+            .select('id')
             .eq('course_id', courseId)
             .eq('is_published', true),
           supabase
             .from('lesson_progress')
-            .select('lesson_id', { count: 'exact', head: true })
+            .select('*')
             .eq('user_id', user!.id)
             .eq('course_id', courseId)
             .eq('is_completed', true)
         ]);
 
-        const totalLessons = lessonsResult.count || 0;
-        const completedLessons = completedResult.count || 0;
+        const totalLessons = lessonsResult.data?.length || 0;
+        const completedLessons = progressResult.data?.length || 0;
         const progressPercentage = totalLessons > 0
           ? Math.round((completedLessons / totalLessons) * 100)
           : 0;
 
-        console.log(`Course ${courseId}: ${completedLessons}/${totalLessons} lessons (${progressPercentage}%)`);
+        console.log(`Course ${courseId}:`, {
+          totalLessons,
+          completedLessons,
+          progressPercentage,
+          lessons: lessonsResult.data?.map(l => l.id),
+          progress: progressResult.data
+        });
 
         progressMap[courseId] = {
           course_id: courseId,
@@ -163,6 +172,7 @@ export default function UserProfile() {
         };
       }
 
+      console.log('Final progress map:', progressMap);
       setCourseProgress(progressMap);
     } catch (error) {
       console.error('Error loading course progress:', error);

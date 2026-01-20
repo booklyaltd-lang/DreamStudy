@@ -135,21 +135,54 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
 
   const markLessonComplete = async (lessonId: string) => {
     try {
-      const { error } = await supabase
-        .from('lesson_progress')
-        .upsert({
-          user_id: user!.id,
-          course_id: courseId,
-          lesson_id: lessonId,
-          is_completed: true,
-          completed_at: new Date().toISOString(),
-          last_watched_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,lesson_id'
-        });
+      console.log('Marking lesson complete:', {
+        user_id: user!.id,
+        course_id: courseId,
+        lesson_id: lessonId
+      });
 
-      if (!error) {
+      const { data: existing } = await supabase
+        .from('lesson_progress')
+        .select('*')
+        .eq('user_id', user!.id)
+        .eq('lesson_id', lessonId)
+        .maybeSingle();
+
+      console.log('Existing progress:', existing);
+
+      let result;
+      if (existing) {
+        result = await supabase
+          .from('lesson_progress')
+          .update({
+            is_completed: true,
+            completed_at: new Date().toISOString(),
+            last_watched_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existing.id)
+          .select();
+      } else {
+        result = await supabase
+          .from('lesson_progress')
+          .insert({
+            user_id: user!.id,
+            course_id: courseId,
+            lesson_id: lessonId,
+            is_completed: true,
+            completed_at: new Date().toISOString(),
+            last_watched_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select();
+      }
+
+      console.log('Progress save result:', result);
+
+      if (result.error) {
+        console.error('Error saving progress:', result.error);
+      } else {
+        console.log('Progress saved successfully, reloading course data...');
         await loadCourseData();
       }
     } catch (error) {
