@@ -35,6 +35,17 @@ export default function UserProfile() {
     }
   }, [user]);
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user) {
+        loadUserData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user]);
+
   const loadUserData = async () => {
     try {
       setLoading(true);

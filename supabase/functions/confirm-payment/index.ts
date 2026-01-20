@@ -129,6 +129,13 @@ Deno.serve(async (req: Request) => {
 
       if (subFetchError) {
         console.error('Error fetching existing subscription:', subFetchError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to check existing subscription', details: subFetchError.message }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
 
       if (existingSubscription) {
@@ -144,9 +151,15 @@ Deno.serve(async (req: Request) => {
 
         if (subUpdateError) {
           console.error('Error updating subscription:', subUpdateError);
-        } else {
-          console.log('Subscription updated successfully');
+          return new Response(
+            JSON.stringify({ error: 'Failed to update subscription', details: subUpdateError.message }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
         }
+        console.log('Subscription updated successfully');
       } else {
         console.log('Creating new subscription');
         const { data: newSubscription, error: subInsertError } = await supabase
@@ -163,9 +176,15 @@ Deno.serve(async (req: Request) => {
 
         if (subInsertError) {
           console.error('Error inserting subscription:', subInsertError);
-        } else {
-          console.log('New subscription created:', newSubscription?.id);
+          return new Response(
+            JSON.stringify({ error: 'Failed to create subscription', details: subInsertError.message }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
         }
+        console.log('New subscription created:', newSubscription?.id);
 
         if (newSubscription) {
           const { error: paymentLinkError } = await supabase
@@ -190,11 +209,18 @@ Deno.serve(async (req: Request) => {
 
       if (profileUpdateError) {
         console.error('Error updating profile:', profileUpdateError);
-      } else {
-        console.log('Profile updated successfully');
+        return new Response(
+          JSON.stringify({ error: 'Failed to update profile', details: profileUpdateError.message }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
+      console.log('Profile updated successfully');
     } else if (paymentType === 'course' && courseId) {
-      await supabase
+      console.log('Creating course purchase for user:', user.id, 'course:', courseId);
+      const { error: purchaseError } = await supabase
         .from('course_purchases')
         .insert({
           user_id: user.id,
@@ -203,10 +229,26 @@ Deno.serve(async (req: Request) => {
           purchased_at: new Date().toISOString(),
         });
 
-      await supabase
+      if (purchaseError) {
+        console.error('Error creating course purchase:', purchaseError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to create course purchase', details: purchaseError.message }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      console.log('Course purchase created successfully');
+
+      const { error: paymentLinkError } = await supabase
         .from('payments')
         .update({ course_id: courseId })
         .eq('id', payment.id);
+
+      if (paymentLinkError) {
+        console.error('Error linking payment to course:', paymentLinkError);
+      }
     }
 
     return new Response(

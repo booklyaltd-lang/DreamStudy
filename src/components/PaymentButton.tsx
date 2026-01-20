@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 interface PaymentButtonProps {
   amount: number;
@@ -29,6 +30,7 @@ export default function PaymentButton({
   disabled = false,
   className = '',
 }: PaymentButtonProps) {
+  const { refreshProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [widgetLoaded, setWidgetLoaded] = useState(false);
@@ -158,6 +160,10 @@ export default function PaymentButton({
 
                   const confirmResult = await confirmResponse.json();
                   console.log('Confirm payment result:', confirmResult);
+
+                  if (confirmResult.success) {
+                    await refreshProfile();
+                  }
                 }
               } catch (err) {
                 console.error('Error confirming payment:', err);
