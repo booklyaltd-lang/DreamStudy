@@ -17,7 +17,7 @@ import PaymentButton from './components/PaymentButton';
 import { supabase } from './lib/supabase';
 import { updateMetaTags, getFullUrl, getAbsoluteImageUrl } from './lib/meta';
 
-type PageType = 'home' | 'courses' | 'course' | 'blog' | 'blogpost' | 'pricing' | 'dashboard' | 'profile' | 'admin' | 'admin-setup' | 'signin' | 'signup' | 'my-courses' | 'course-viewer' | 'subscriptions' | 'user-profile' | 'payment-success';
+type PageType = 'home' | 'courses' | 'course' | 'blog' | 'blogpost' | 'pricing' | 'dashboard' | 'profile' | 'admin' | 'admin-setup' | 'signin' | 'signup' | 'my-courses' | 'course-viewer' | 'subscriptions' | 'payment-success';
 
 function App() {
   const { user, signOut } = useAuth();
@@ -179,7 +179,7 @@ function App() {
       case 'dashboard':
         return <DashboardPage onNavigate={handleNavigate} user={user} />;
       case 'profile':
-        return <ProfilePage onNavigate={handleNavigate} user={user} />;
+        return <UserProfile />;
       case 'admin':
         return <AdminPanel user={user} onNavigate={handleNavigate} />;
       case 'admin-setup':
@@ -188,8 +188,6 @@ function App() {
         return <SignInPage onNavigate={handleNavigate} />;
       case 'signup':
         return <SignUpPage onNavigate={handleNavigate} />;
-      case 'user-profile':
-        return <UserProfile />;
       case 'my-courses':
         return <CoursesList onCourseSelect={(courseId) => handleNavigate('course-viewer', courseId)} />;
       case 'course-viewer':
@@ -269,8 +267,8 @@ function Header({ onNavigate, currentPage, user, onSignOut }: { onNavigate: (p: 
                     </button>
                     <button onClick={() => { onNavigate('dashboard'); setUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Мой кабинет</button>
                     <button onClick={() => { onNavigate('profile'); setUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2">
-                      <Settings className="h-4 w-4" />
-                      <span>Настройки</span>
+                      <User className="h-4 w-4" />
+                      <span>Мой профиль</span>
                     </button>
                     <button onClick={async () => {
                       setUserMenuOpen(false);
@@ -308,7 +306,7 @@ function Header({ onNavigate, currentPage, user, onSignOut }: { onNavigate: (p: 
                   <button onClick={() => { onNavigate('my-courses'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Мои курсы</button>
                   <button onClick={() => { onNavigate('subscriptions'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Подписка</button>
                   <button onClick={() => { onNavigate('dashboard'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Мой кабинет</button>
-                  <button onClick={() => { onNavigate('profile'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Настройки</button>
+                  <button onClick={() => { onNavigate('profile'); setMobileMenuOpen(false); }} className="text-left text-base font-medium text-gray-700">Мой профиль</button>
                   <button onClick={async () => {
                     setMobileMenuOpen(false);
                     await onSignOut();

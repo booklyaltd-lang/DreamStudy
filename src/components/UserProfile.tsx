@@ -30,8 +30,11 @@ export default function UserProfile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('[UserProfile] Component mounted, user:', user?.id);
     if (user) {
       loadUserData();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
@@ -47,14 +50,20 @@ export default function UserProfile() {
   }, [user]);
 
   const loadUserData = async () => {
+    if (!user) {
+      console.log('[UserProfile] No user found, skipping data load');
+      return;
+    }
+
     try {
+      console.log('[UserProfile] Loading data for user:', user.id);
       setLoading(true);
 
       const [subscriptionResult, purchasesResult] = await Promise.all([
         supabase
           .from('user_subscriptions')
           .select('*')
-          .eq('user_id', user!.id)
+          .eq('user_id', user.id)
           .eq('is_active', true)
           .order('created_at', { ascending: false })
           .maybeSingle(),
@@ -71,19 +80,38 @@ export default function UserProfile() {
               thumbnail_url
             )
           `)
-          .eq('user_id', user!.id)
+          .eq('user_id', user.id)
           .order('purchased_at', { ascending: false })
       ]);
 
+      console.log('[UserProfile] Subscription result:', subscriptionResult);
+      console.log('[UserProfile] Purchases result:', purchasesResult);
+
+      if (subscriptionResult.error) {
+        console.error('[UserProfile] Subscription query error:', subscriptionResult.error);
+      }
+
+      if (purchasesResult.error) {
+        console.error('[UserProfile] Purchases query error:', purchasesResult.error);
+      }
+
       if (subscriptionResult.data) {
+        console.log('[UserProfile] Setting subscription:', subscriptionResult.data);
         setSubscription(subscriptionResult.data);
+      } else {
+        console.log('[UserProfile] No subscription data found');
+        setSubscription(null);
       }
 
       if (purchasesResult.data) {
+        console.log('[UserProfile] Setting purchases, count:', purchasesResult.data.length);
         setPurchases(purchasesResult.data as any);
+      } else {
+        console.log('[UserProfile] No purchases data found');
+        setPurchases([]);
       }
     } catch (error) {
-      console.error('Error loading user data:', error);
+      console.error('[UserProfile] Error loading user data:', error);
     } finally {
       setLoading(false);
     }
