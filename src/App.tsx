@@ -410,9 +410,11 @@ function Footer({ onNavigate }: { onNavigate: (p: PageType) => void }) {
 }
 
 function HomePage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }) {
+  const { profile } = useAuth();
   const [featuredCourses, setFeaturedCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { settings } = useSiteSettings();
+  const userTier = profile?.subscription_tier || 'free';
 
   useEffect(() => {
     fetchFeaturedCourses();
@@ -524,7 +526,7 @@ function HomePage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {featuredCourses.map((course) => (
-                <CourseCard key={course.id} course={course} onClick={() => onNavigate('course', course)} />
+                <CourseCard key={course.id} course={course} userTier={userTier} onClick={() => onNavigate('course', course)} />
               ))}
             </div>
           )}
@@ -572,7 +574,7 @@ function HomePage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }
   );
 }
 
-function CourseCard({ course, onClick }: { course: any; onClick: () => void }) {
+function CourseCard({ course, onClick, userTier = 'free' }: { course: any; onClick: () => void; userTier?: string }) {
   const levelColors: Record<string, string> = {
     beginner: 'bg-green-100 text-green-700',
     intermediate: 'bg-yellow-100 text-yellow-700',
@@ -585,15 +587,37 @@ function CourseCard({ course, onClick }: { course: any; onClick: () => void }) {
     advanced: 'Продвинутый',
   };
 
+  const tierLabels: Record<string, string> = {
+    free: 'Бесплатно',
+    basic: 'Basic',
+    premium: 'Premium',
+  };
+
+  const canAccess = () => {
+    const requiredTier = course.required_tier || 'free';
+    if (requiredTier === 'free') return true;
+    if (requiredTier === 'basic') return userTier === 'basic' || userTier === 'premium';
+    if (requiredTier === 'premium') return userTier === 'premium';
+    return false;
+  };
+
+  const hasAccess = canAccess();
+  const requiredTier = course.required_tier || 'free';
   const hasImage = course.thumbnail_url && course.thumbnail_url.trim() !== '';
 
   return (
-    <div onClick={onClick} className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer group">
+    <div onClick={onClick} className={`bg-white rounded-xl shadow-sm transition-all duration-300 overflow-hidden cursor-pointer group relative ${
+      hasAccess ? 'hover:shadow-lg' : 'opacity-90'
+    }`}>
       <div className="relative h-48 overflow-hidden">
         {hasImage ? (
-          <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          <img src={course.thumbnail_url} alt={course.title} className={`w-full h-full object-cover transition-transform duration-300 ${
+            hasAccess ? 'group-hover:scale-105' : ''
+          }`} />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+          <div className={`w-full h-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center transition-transform duration-300 ${
+            hasAccess ? 'group-hover:scale-105' : ''
+          }`}>
             <div className="text-center text-white">
               <BookOpen className="h-16 w-16 mx-auto mb-2 opacity-80" />
               <span className="text-4xl font-bold opacity-90">{course.title.charAt(0).toUpperCase()}</span>
@@ -605,6 +629,25 @@ function CourseCard({ course, onClick }: { course: any; onClick: () => void }) {
             {levelLabels[course.level]}
           </span>
         </div>
+        {requiredTier !== 'free' && (
+          <div className="absolute top-4 left-4">
+            <span className={`px-3 py-1 text-white text-xs font-semibold rounded-full ${
+              requiredTier === 'premium' ? 'bg-purple-600' : 'bg-orange-600'
+            }`}>
+              {tierLabels[requiredTier]}
+            </span>
+          </div>
+        )}
+        {!hasAccess && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div className="text-center">
+              <Lock className="h-12 w-12 text-white mx-auto mb-2" />
+              <p className="text-white font-semibold text-sm">
+                Требуется {tierLabels[requiredTier]}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="p-6">
@@ -645,6 +688,7 @@ function CourseCard({ course, onClick }: { course: any; onClick: () => void }) {
 }
 
 function CoursesPage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }) {
+  const { profile } = useAuth();
   const [courses, setCourses] = useState<any[]>([]);
   const [filteredCourses, setFilteredCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -652,6 +696,7 @@ function CoursesPage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => voi
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+  const userTier = profile?.subscription_tier || 'free';
 
   useEffect(() => {
     fetchCourses();
@@ -752,7 +797,7 @@ function CoursesPage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => voi
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {paginatedCourses.map((course) => (
-                <CourseCard key={course.id} course={course} onClick={() => onNavigate('course', course)} />
+                <CourseCard key={course.id} course={course} userTier={userTier} onClick={() => onNavigate('course', course)} />
               ))}
             </div>
             {totalPages > 1 && (
@@ -770,11 +815,15 @@ function CoursesPage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => voi
 }
 
 function CourseDetailPage({ course, onNavigate, user }: { course: any; onNavigate: (p: PageType, d?: any) => void; user: AuthUser | null }) {
+  const { profile } = useAuth();
   const [lessons, setLessons] = useState<any[]>([]);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [progress, setProgress] = useState<Map<string, boolean>>(new Map());
+  const [tierError, setTierError] = useState<string | null>(null);
+
+  const userTier = profile?.subscription_tier || 'free';
 
   useEffect(() => {
     fetchLessons();
@@ -825,12 +874,28 @@ function CourseDetailPage({ course, onNavigate, user }: { course: any; onNavigat
     }
   };
 
+  const canAccessCourse = () => {
+    const requiredTier = course.required_tier || 'free';
+    if (requiredTier === 'free') return true;
+    if (requiredTier === 'basic') return userTier === 'basic' || userTier === 'premium';
+    if (requiredTier === 'premium') return userTier === 'premium';
+    return false;
+  };
+
   const handleEnroll = async () => {
     if (!user) {
       onNavigate('signin');
       return;
     }
+
+    if (!canAccessCourse()) {
+      setTierError('Ваш тарифный план не соответствует выбранному курсу. Повысьте тариф');
+      setTimeout(() => setTierError(null), 5000);
+      return;
+    }
+
     setEnrolling(true);
+    setTierError(null);
     try {
       await supabase.from('enrollments').insert({ user_id: user.id, course_id: course.id, progress_percentage: 0 });
       setIsEnrolled(true);
@@ -895,6 +960,12 @@ function CourseDetailPage({ course, onNavigate, user }: { course: any; onNavigat
                   {course.required_tier === 'free' ? 'Доступен всем' : `Требуется подписка ${course.required_tier}`}
                 </p>
 
+                {tierError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-700 text-center">{tierError}</p>
+                  </div>
+                )}
+
                 {loading ? (
                   <div className="bg-gray-200 h-12 rounded-lg animate-pulse" />
                 ) : isEnrolled ? (
@@ -915,6 +986,25 @@ function CourseDetailPage({ course, onNavigate, user }: { course: any; onNavigat
                   <button onClick={() => onNavigate('signin')} className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
                     Войти для покупки
                   </button>
+                ) : !canAccessCourse() ? (
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => {
+                        setTierError('Ваш тарифный план не соответствует выбранному курсу. Повысьте тариф');
+                        setTimeout(() => setTierError(null), 5000);
+                      }}
+                      className="w-full py-3 bg-gray-400 text-white font-semibold rounded-lg cursor-not-allowed flex items-center justify-center space-x-2"
+                    >
+                      <Lock className="h-5 w-5" />
+                      <span>Курс недоступен</span>
+                    </button>
+                    <button
+                      onClick={() => onNavigate('pricing')}
+                      className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Повысить тариф
+                    </button>
+                  </div>
                 ) : (
                   <PaymentButton
                     amount={course.price}
