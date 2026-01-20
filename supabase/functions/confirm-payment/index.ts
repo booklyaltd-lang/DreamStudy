@@ -194,47 +194,19 @@ Deno.serve(async (req: Request) => {
         console.log('Profile updated successfully');
       }
     } else if (paymentType === 'course' && courseId) {
-      console.log('Creating course purchase:', {
-        user_id: user.id,
-        course_id: courseId,
-        price_paid: parseFloat(payment.amount)
-      });
-
-      const { data: existingPurchase } = await supabase
+      await supabase
         .from('course_purchases')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('course_id', courseId)
-        .maybeSingle();
+        .insert({
+          user_id: user.id,
+          course_id: courseId,
+          price_paid: parseFloat(payment.amount),
+          purchased_at: new Date().toISOString(),
+        });
 
-      if (existingPurchase) {
-        console.log('Course already purchased:', existingPurchase.id);
-      } else {
-        const { data: purchaseData, error: purchaseError } = await supabase
-          .from('course_purchases')
-          .insert({
-            user_id: user.id,
-            course_id: courseId,
-            price_paid: parseFloat(payment.amount),
-            purchased_at: new Date().toISOString(),
-          })
-          .select();
-
-        if (purchaseError) {
-          console.error('Failed to create course purchase:', purchaseError);
-        } else {
-          console.log('Course purchase created successfully:', purchaseData);
-        }
-      }
-
-      const { error: paymentUpdateError } = await supabase
+      await supabase
         .from('payments')
         .update({ course_id: courseId })
         .eq('id', payment.id);
-
-      if (paymentUpdateError) {
-        console.error('Failed to update payment with course_id:', paymentUpdateError);
-      }
     }
 
     return new Response(

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Calendar, Crown, BookOpen } from 'lucide-react';
+import { Calendar, Crown, BookOpen, CheckCircle } from 'lucide-react';
 
 interface Subscription {
   id: string;
@@ -39,64 +39,36 @@ export default function UserProfile() {
     try {
       setLoading(true);
 
-      const profileResult = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user!.id)
-        .single();
-
-      const subscriptionResult = await supabase
-        .from('user_subscriptions')
-        .select('*')
-        .eq('user_id', user!.id)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .maybeSingle();
-
-      const purchasesResult = await supabase
-        .from('course_purchases')
-        .select(`
-          id,
-          course_id,
-          purchased_at,
-          course:courses (
+      const [subscriptionResult, purchasesResult] = await Promise.all([
+        supabase
+          .from('user_subscriptions')
+          .select('*')
+          .eq('user_id', user!.id)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .maybeSingle(),
+        supabase
+          .from('course_purchases')
+          .select(`
             id,
-            title,
-            description,
-            thumbnail_url
-          )
-        `)
-        .eq('user_id', user!.id)
-        .order('purchased_at', { ascending: false });
-
-      const isAdmin = profileResult.data?.role === 'admin';
+            course_id,
+            purchased_at,
+            course:courses (
+              id,
+              title,
+              description,
+              thumbnail_url
+            )
+          `)
+          .eq('user_id', user!.id)
+          .order('purchased_at', { ascending: false })
+      ]);
 
       if (subscriptionResult.data) {
         setSubscription(subscriptionResult.data);
       }
 
-      if (isAdmin) {
-        const { data: allCourses } = await supabase
-          .from('courses')
-          .select('id, title, description, thumbnail_url')
-          .order('created_at', { ascending: false });
-
-        if (allCourses && allCourses.length > 0) {
-          const adminPurchases = allCourses.map(course => ({
-            id: `admin-${course.id}`,
-            course_id: course.id,
-            purchased_at: new Date().toISOString(),
-            course: {
-              id: course.id,
-              title: course.title,
-              description: course.description,
-              thumbnail_url: course.thumbnail_url
-            }
-          }));
-
-          setPurchases(adminPurchases as any);
-        }
-      } else if (purchasesResult.data && purchasesResult.data.length > 0) {
+      if (purchasesResult.data) {
         setPurchases(purchasesResult.data as any);
       }
     } catch (error) {
@@ -238,8 +210,9 @@ export default function UserProfile() {
                         <p className="text-sm text-slate-600 line-clamp-2 mb-3">
                           {purchase.course.description}
                         </p>
-                        <div className="text-xs text-slate-500">
-                          Куплен {formatDate(purchase.purchased_at)}
+                        <div className="flex items-center justify-between text-xs text-slate-500">
+                          <span>Куплен {formatDate(purchase.purchased_at)}</span>
+                          <CheckCircle className="w-4 h-4 text-green-500" />
                         </div>
                       </div>
                     </a>

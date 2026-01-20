@@ -37,28 +37,17 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
     try {
       setLoading(true);
 
-      const [courseResult, profileResult, purchaseResult, subscriptionResult, lessonsResult, progressResult] = await Promise.all([
+      const [courseResult, enrollmentResult, lessonsResult, progressResult] = await Promise.all([
         supabase
           .from('courses')
           .select('*')
           .eq('id', courseId)
           .single(),
         supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user!.id)
-          .single(),
-        supabase
-          .from('course_purchases')
+          .from('enrollments')
           .select('id')
           .eq('user_id', user!.id)
           .eq('course_id', courseId)
-          .maybeSingle(),
-        supabase
-          .from('user_subscriptions')
-          .select('id, tier')
-          .eq('user_id', user!.id)
-          .eq('is_active', true)
           .maybeSingle(),
         supabase
           .from('course_lessons')
@@ -77,10 +66,7 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
         setCourse(courseResult.data);
       }
 
-      const isAdmin = profileResult.data?.role === 'admin';
-      const hasPurchased = !!purchaseResult.data;
-      const hasActiveSubscription = !!subscriptionResult.data;
-      const isEnrolled = isAdmin || hasPurchased || hasActiveSubscription;
+      const isEnrolled = !!enrollmentResult.data;
       setHasAccess(isEnrolled);
 
       if (lessonsResult.data) {
@@ -135,54 +121,21 @@ export default function CourseViewer({ courseId, onBack }: CourseViewerProps) {
 
   const markLessonComplete = async (lessonId: string) => {
     try {
-      console.log('Marking lesson complete:', {
-        user_id: user!.id,
-        course_id: courseId,
-        lesson_id: lessonId
-      });
-
-      const { data: existing } = await supabase
+      const { error } = await supabase
         .from('lesson_progress')
-        .select('*')
-        .eq('user_id', user!.id)
-        .eq('lesson_id', lessonId)
-        .maybeSingle();
+        .upsert({
+          user_id: user!.id,
+          course_id: courseId,
+          lesson_id: lessonId,
+          is_completed: true,
+          completed_at: new Date().toISOString(),
+          last_watched_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,lesson_id'
+        });
 
-      console.log('Existing progress:', existing);
-
-      let result;
-      if (existing) {
-        result = await supabase
-          .from('lesson_progress')
-          .update({
-            is_completed: true,
-            completed_at: new Date().toISOString(),
-            last_watched_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existing.id)
-          .select();
-      } else {
-        result = await supabase
-          .from('lesson_progress')
-          .insert({
-            user_id: user!.id,
-            course_id: courseId,
-            lesson_id: lessonId,
-            is_completed: true,
-            completed_at: new Date().toISOString(),
-            last_watched_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .select();
-      }
-
-      console.log('Progress save result:', result);
-
-      if (result.error) {
-        console.error('Error saving progress:', result.error);
-      } else {
-        console.log('Progress saved successfully, reloading course data...');
+      if (!error) {
         await loadCourseData();
       }
     } catch (error) {

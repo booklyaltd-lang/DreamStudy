@@ -1,6 +1,11 @@
 import { useState, useRef } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { Bold, Italic, List, ListOrdered, Link, Image, Video, Code, Upload, ChevronDown, FileCode } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 interface RichTextEditorProps {
   value: string;

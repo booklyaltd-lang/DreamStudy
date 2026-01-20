@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { Plus, Trash2, Save, CreditCard, Key, Check, X } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 interface PricingTier {
   id: string;
