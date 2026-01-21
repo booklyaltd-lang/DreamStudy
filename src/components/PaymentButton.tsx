@@ -140,82 +140,22 @@ export default function PaymentButton({
             onSuccess: async function(options: any) {
               console.log('[PaymentButton] CloudPayments success callback:', options);
               console.log('[PaymentButton] Invoice ID:', invoiceId);
-
-              try {
-                console.log('[PaymentButton] Refreshing session to get fresh token...');
-                const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
-
-                if (sessionError || !session) {
-                  console.error('[PaymentButton] Failed to refresh session:', sessionError);
-                  alert('Ошибка: не удалось обновить сессию. Пожалуйста, войдите снова и попробуйте подтвердить платеж вручную через профиль.');
-                  setLoading(false);
-                  window.location.href = '/profile';
-                  return;
-                }
-
-                console.log('[PaymentButton] Session refreshed successfully');
-                console.log('[PaymentButton] Access token:', session.access_token.substring(0, 20) + '...');
-
-                const confirmUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/confirm-payment`;
-
-                console.log('[PaymentButton] Confirm URL:', confirmUrl);
-                console.log('[PaymentButton] Payment ID:', invoiceId);
-
-                const confirmResponse = await fetch(confirmUrl, {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${session.access_token}`,
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    payment_id: invoiceId,
-                  }),
-                });
-
-                console.log('[PaymentButton] Confirm response status:', confirmResponse.status);
-                console.log('[PaymentButton] Confirm response headers:', Object.fromEntries(confirmResponse.headers.entries()));
-
-                if (!confirmResponse.ok) {
-                  const errorText = await confirmResponse.text();
-                  console.error('[PaymentButton] Confirm payment failed:', errorText);
-                  alert(`Ошибка подтверждения платежа (${confirmResponse.status}): Перейдите в профиль и нажмите кнопку "Подтвердить" для завершения оплаты.`);
-                  setLoading(false);
-                  window.location.href = '/profile';
-                  return;
-                }
-
-                const confirmResult = await confirmResponse.json();
-                console.log('[PaymentButton] Confirm payment result:', confirmResult);
-
-                if (!confirmResult.success) {
-                  console.error('[PaymentButton] Payment confirmation returned false');
-                  alert(`Ошибка: ${confirmResult.error || 'Не удалось подтвердить платеж'}. Перейдите в профиль для ручного подтверждения.`);
-                  setLoading(false);
-                  window.location.href = '/profile';
-                  return;
-                }
-
-                console.log('[PaymentButton] Payment confirmed successfully, refreshing profile');
-                await refreshProfile();
-                console.log('[PaymentButton] Profile refreshed, redirecting');
-              } catch (err) {
-                console.error('[PaymentButton] Error confirming payment:', err);
-                alert(`Ошибка при обработке платежа: ${(err as Error).message}. Перейдите в профиль для ручного подтверждения.`);
-                setLoading(false);
-                window.location.href = '/profile';
-                return;
-              }
+              console.log('[PaymentButton] Payment successful! CloudPayments will send webhook notification to process the payment.');
 
               setLoading(false);
+              alert('Оплата прошла успешно! Доступ к контенту будет активирован в течение нескольких секунд.');
+
+              await refreshProfile();
+
               window.location.href = '/payment-success';
             },
             onFail: function(reason: string, options: any) {
-              console.error('Payment failed:', reason, options);
+              console.error('[PaymentButton] Payment failed:', reason, options);
               setError(`Ошибка оплаты: ${reason}`);
               setLoading(false);
             },
             onComplete: function(paymentResult: any, options: any) {
-              console.log('Payment complete:', paymentResult, options);
+              console.log('[PaymentButton] Payment complete:', paymentResult, options);
             }
           };
 

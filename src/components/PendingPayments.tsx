@@ -18,6 +18,12 @@ export default function PendingPayments() {
 
   useEffect(() => {
     loadPendingPayments();
+
+    const interval = setInterval(() => {
+      loadPendingPayments();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const loadPendingPayments = async () => {
@@ -107,11 +113,12 @@ export default function PendingPayments() {
         <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
         <div>
           <h3 className="font-semibold text-amber-900 mb-1">
-            Ожидающие подтверждения платежи
+            Обрабатываются платежи
           </h3>
           <p className="text-sm text-amber-800">
-            У вас есть {payments.length} платеж(ей), ожидающих подтверждения.
-            Если оплата прошла успешно, нажмите кнопку подтверждения.
+            У вас есть {payments.length} платеж(ей) в обработке.
+            Обычно обработка занимает 5-30 секунд. Обновите страницу через несколько секунд.
+            Если платеж не обработался автоматически в течение минуты, нажмите кнопку "Подтвердить" вручную.
           </p>
         </div>
       </div>
