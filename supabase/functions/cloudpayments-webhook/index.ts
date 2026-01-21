@@ -56,19 +56,24 @@ Deno.serve(async (req: Request) => {
     const notification: CloudPaymentsNotification = await req.json();
 
     console.log('=== CloudPayments Webhook Received ===');
+    console.log('Timestamp:', new Date().toISOString());
     console.log('Full notification:', JSON.stringify(notification, null, 2));
     console.log('Transaction ID:', notification.TransactionId);
     console.log('Invoice ID:', notification.InvoiceId);
     console.log('Status:', notification.Status);
     console.log('Amount:', notification.Amount);
+    console.log('Currency:', notification.Currency);
     console.log('Data:', notification.Data);
+    console.log('Test Mode:', notification.TestMode);
 
     const invoiceId = notification.InvoiceId;
 
     if (!invoiceId) {
-      console.log('ERROR: No InvoiceId in notification');
+      console.error('ERROR: No InvoiceId in notification - cannot process payment');
+      console.error('This means CloudPayments sent notification without InvoiceId');
+      console.error('Make sure you are passing invoiceId when creating payment');
       return new Response(
-        JSON.stringify({ code: 0 }),
+        JSON.stringify({ code: 0, message: 'No InvoiceId provided' }),
         {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -96,10 +101,23 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!payment) {
-      console.error('ERROR: Payment not found for InvoiceId:', invoiceId);
-      console.error('Make sure the payment was created before webhook notification');
+      console.error('ERROR: Payment not found in database for InvoiceId:', invoiceId);
+      console.error('Possible reasons:');
+      console.error('1. Payment was not created before webhook arrived');
+      console.error('2. InvoiceId mismatch between create-payment and webhook');
+      console.error('3. Payment was deleted from database');
+      console.error('Searching all payments to debug...');
+
+      const { data: allPayments } = await supabaseClient
+        .from('payments')
+        .select('yookassa_payment_id, created_at')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      console.error('Recent payments in database:', allPayments);
+
       return new Response(
-        JSON.stringify({ code: 0 }),
+        JSON.stringify({ code: 0, message: 'Payment not found in database' }),
         {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

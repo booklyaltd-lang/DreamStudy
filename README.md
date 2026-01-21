@@ -16,17 +16,18 @@
 
 ### Платежи
 
-- Интеграция с **CloudPayments**
+- Интеграция с **CloudPayments** и **YooKassa**
 - Прием платежей за курсы
 - Подписки на тарифные планы
 - Автоматическое предоставление доступа после оплаты
 - Webhook для обработки уведомлений о платежах
+- Виджет CloudPayments для удобной оплаты
 
 ### Технологии
 
 - **Frontend**: React 18, TypeScript, Tailwind CSS, Vite
 - **Backend**: Supabase (PostgreSQL, Edge Functions, Storage, Auth)
-- **Платежи**: YooKassa API
+- **Платежи**: CloudPayments, YooKassa
 - **Иконки**: Lucide React
 
 ## Быстрый старт
@@ -46,9 +47,11 @@ VITE_SUPABASE_URL=ваш_supabase_url
 VITE_SUPABASE_ANON_KEY=ваш_supabase_anon_key
 ```
 
-### 3. Настройка YooKassa
+### 3. Настройка платежной системы
 
-Смотрите подробное руководство в файле [YOOKASSA_SETUP.md](./YOOKASSA_SETUP.md)
+Выберите платежную систему:
+- **CloudPayments** - рекомендуется. Подробное руководство: [CLOUDPAYMENTS_SETUP.md](./CLOUDPAYMENTS_SETUP.md)
+- **YooKassa** - альтернативная система. Подробное руководство: [YOOKASSA_SETUP.md](./YOOKASSA_SETUP.md)
 
 ### 4. Запуск в режиме разработки
 
@@ -84,8 +87,10 @@ npm run build
 │   └── main.tsx         # Точка входа
 ├── supabase/
 │   ├── functions/       # Edge Functions
-│   │   ├── create-payment/
-│   │   └── yookassa-webhook/
+│   │   ├── create-payment/         # Создание платежа
+│   │   ├── confirm-payment/        # Ручное подтверждение (резерв)
+│   │   ├── cloudpayments-webhook/  # Обработка CloudPayments
+│   │   └── yookassa-webhook/       # Обработка YooKassa
 │   └── migrations/      # Миграции базы данных
 ├── public/              # Статические файлы
 └── dist/               # Собранное приложение
@@ -102,7 +107,7 @@ npm run build
 - `blog_posts` - статьи блога
 - `user_subscriptions` - подписки пользователей
 - `course_purchases` - покупки курсов
-- `payments` - платежи через YooKassa
+- `payments` - платежи (CloudPayments/YooKassa)
 - `pricing_tiers` - тарифные планы
 - `site_settings` - настройки сайта
 
@@ -116,16 +121,22 @@ npm run build
 - Netlify
 - Apache/Nginx
 
-## Настройка YooKassa
+## Настройка платежных систем
 
-Полное руководство по интеграции платежной системы YooKassa находится в файле [YOOKASSA_SETUP.md](./YOOKASSA_SETUP.md)
+### CloudPayments (рекомендуется)
+
+Полное руководство находится в файле [CLOUDPAYMENTS_SETUP.md](./CLOUDPAYMENTS_SETUP.md)
 
 Основные шаги:
 1. Регистрация в CloudPayments
-2. Получение API ключей
-3. Настройка переменных окружения в Supabase
-4. Настройка Webhook
+2. Получение Public ID и API пароля
+3. Настройка в админ-панели приложения
+4. **КРИТИЧЕСКИ ВАЖНО**: Настройка Webhook в личном кабинете CloudPayments
 5. Тестирование платежей
+
+### YooKassa (альтернатива)
+
+Полное руководство находится в файле [YOOKASSA_SETUP.md](./YOOKASSA_SETUP.md)
 
 ## Разработка
 
