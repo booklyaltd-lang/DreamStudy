@@ -46,21 +46,27 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
 
     const notification: CloudPaymentsNotification = await req.json();
 
-    console.log('CloudPayments webhook received:', {
-      TransactionId: notification.TransactionId,
-      InvoiceId: notification.InvoiceId,
-      Status: notification.Status,
-      Amount: notification.Amount,
-    });
+    console.log('=== CloudPayments Webhook Received ===');
+    console.log('Full notification:', JSON.stringify(notification, null, 2));
+    console.log('Transaction ID:', notification.TransactionId);
+    console.log('Invoice ID:', notification.InvoiceId);
+    console.log('Status:', notification.Status);
+    console.log('Amount:', notification.Amount);
+    console.log('Data:', notification.Data);
 
     const invoiceId = notification.InvoiceId;
 
     if (!invoiceId) {
-      console.log('No InvoiceId in notification');
+      console.log('ERROR: No InvoiceId in notification');
       return new Response(
         JSON.stringify({ code: 0 }),
         {
@@ -70,14 +76,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: payment, error: paymentError } = await supabase
+    console.log('Searching for payment with InvoiceId:', invoiceId);
+
+    const { data: payment, error: paymentError } = await supabaseClient
       .from('payments')
       .select('*')
       .eq('yookassa_payment_id', invoiceId)
       .maybeSingle();
 
-    if (paymentError || !payment) {
-      console.error('Payment not found for InvoiceId:', invoiceId, paymentError);
+    if (paymentError) {
+      console.error('ERROR: Database error searching for payment:', paymentError);
       return new Response(
         JSON.stringify({ code: 0 }),
         {
@@ -87,16 +95,39 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    if (!payment) {
+      console.error('ERROR: Payment not found for InvoiceId:', invoiceId);
+      console.error('Make sure the payment was created before webhook notification');
+      return new Response(
+        JSON.stringify({ code: 0 }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    console.log('Payment found:', {
+      id: payment.id,
+      user_id: payment.user_id,
+      amount: payment.amount,
+      status: payment.status,
+      payment_type: payment.payment_type,
+      course_id: payment.course_id
+    });
+
     let newStatus = 'pending';
     if (notification.Status === 'Completed' || notification.Status === 'Authorized') {
       newStatus = 'succeeded';
+      console.log('Payment succeeded!');
     } else if (notification.Status === 'Declined' || notification.Status === 'Cancelled') {
       newStatus = 'failed';
+      console.log('Payment failed or cancelled');
     }
 
-    console.log('Updating payment status to:', newStatus);
+    console.log('Updating payment status from', payment.status, 'to', newStatus);
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseClient
       .from('payments')
       .update({
         status: newStatus,
@@ -113,7 +144,7 @@ Deno.serve(async (req: Request) => {
       .eq('yookassa_payment_id', invoiceId);
 
     if (updateError) {
-      console.error('Failed to update payment:', updateError);
+      console.error('ERROR: Failed to update payment status:', updateError);
       return new Response(
         JSON.stringify({ code: 13 }),
         {
@@ -123,7 +154,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    console.log('Payment status updated successfully to:', newStatus);
+
     if (newStatus === 'succeeded') {
+      console.log('=== Processing successful payment ===');
       const metadata = payment.metadata || {};
       let dataObj = metadata;
 
@@ -144,13 +178,18 @@ Deno.serve(async (req: Request) => {
       const tier = dataObj.tier || metadata.tier || 'basic';
       const courseId = payment.course_id || dataObj.course_id;
 
-      console.log('Processing successful payment:', { paymentType, userId, tier, courseId });
+      console.log('Payment type:', paymentType);
+      console.log('User ID:', userId);
+      console.log('Tier:', tier);
+      console.log('Course ID:', courseId);
 
       if (paymentType === 'subscription') {
+        console.log('--- Processing SUBSCRIPTION payment ---');
         const endDate = new Date();
         endDate.setMonth(endDate.getMonth() + 1);
+        console.log('Subscription end date:', endDate.toISOString());
 
-        const { data: existingSubscription } = await supabase
+        const { data: existingSubscription } = await supabaseClient
           .from('user_subscriptions')
           .select('*')
           .eq('user_id', userId)
@@ -158,7 +197,8 @@ Deno.serve(async (req: Request) => {
           .maybeSingle();
 
         if (existingSubscription) {
-          const { error: updateError } = await supabase
+          console.log('Found existing subscription, updating:', existingSubscription.id);
+          const { error: updateError } = await supabaseClient
             .from('user_subscriptions')
             .update({
               tier: tier,
@@ -168,12 +208,13 @@ Deno.serve(async (req: Request) => {
             .eq('id', existingSubscription.id);
 
           if (updateError) {
-            console.error('Failed to update subscription:', updateError);
+            console.error('ERROR: Failed to update subscription:', updateError);
           } else {
-            console.log('Subscription updated successfully');
+            console.log('SUCCESS: Subscription updated');
           }
         } else {
-          const { data: newSubscription, error: subError } = await supabase
+          console.log('No existing subscription, creating new one');
+          const { data: newSubscription, error: subError } = await supabaseClient
             .from('user_subscriptions')
             .insert({
               user_id: userId,
@@ -186,27 +227,43 @@ Deno.serve(async (req: Request) => {
             .single();
 
           if (subError) {
-            console.error('Failed to create subscription:', subError);
+            console.error('ERROR: Failed to create subscription:', subError);
           } else {
-            console.log('Subscription created successfully');
+            console.log('SUCCESS: Subscription created:', newSubscription?.id);
             if (newSubscription) {
-              await supabase
+              const { error: linkError } = await supabaseClient
                 .from('payments')
                 .update({ subscription_id: newSubscription.id })
                 .eq('id', payment.id);
+
+              if (linkError) {
+                console.error('ERROR: Failed to link payment to subscription:', linkError);
+              } else {
+                console.log('Payment linked to subscription');
+              }
             }
           }
         }
 
-        await supabase
+        console.log('Updating user profile with subscription tier');
+        const { error: profileError } = await supabaseClient
           .from('profiles')
           .update({
             subscription_tier: tier,
             subscription_expires_at: endDate.toISOString(),
           })
           .eq('id', userId);
+
+        if (profileError) {
+          console.error('ERROR: Failed to update profile:', profileError);
+        } else {
+          console.log('SUCCESS: Profile updated with subscription tier');
+        }
       } else if (paymentType === 'course' && courseId) {
-        const { error: purchaseError } = await supabase.from('course_purchases').insert({
+        console.log('--- Processing COURSE payment ---');
+        console.log('Creating course purchase for course:', courseId);
+
+        const { error: purchaseError } = await supabaseClient.from('course_purchases').insert({
           user_id: userId,
           course_id: courseId,
           price_paid: parseFloat(payment.amount),
@@ -214,15 +271,25 @@ Deno.serve(async (req: Request) => {
         });
 
         if (purchaseError) {
-          console.error('Failed to create course purchase:', purchaseError);
+          console.error('ERROR: Failed to create course purchase:', purchaseError);
         } else {
-          console.log('Course purchase created successfully');
-          await supabase
+          console.log('SUCCESS: Course purchase created');
+          const { error: linkError } = await supabaseClient
             .from('payments')
             .update({ course_id: courseId })
             .eq('id', payment.id);
+
+          if (linkError) {
+            console.error('ERROR: Failed to link payment to course:', linkError);
+          } else {
+            console.log('Payment linked to course');
+          }
         }
+      } else {
+        console.log('WARNING: Unknown payment type or missing course_id');
       }
+
+      console.log('=== Payment processing completed successfully ===');
     }
 
     return new Response(
