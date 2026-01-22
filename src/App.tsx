@@ -400,7 +400,7 @@ function Footer({ onNavigate }: { onNavigate: (p: PageType) => void }) {
         </div>
         <div className="border-t border-gray-800 mt-12 pt-8 text-center">
           <p className="text-sm text-gray-400">© DreamStudy 2015-2026. Все права защищены.</p>
-          <p className="text-xs text-gray-500 mt-2">ИП Слесарев Павел Сергеевич ИНН 631600573057 ОГРНИП 319631300174973</p>
+          <p className="text-xs text-gray-500 mt-2">Personal EdTech Platforms</p>
         </div>
       </div>
     </footer>
@@ -541,12 +541,12 @@ function HomePage({ onNavigate }: { onNavigate: (p: PageType, d?: any) => void }
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-blue-700">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-white mb-4">Почему EduPlatform?</h2>
-            <p className="text-xl text-blue-100">Всё, что вам нужно для успеха в вашем путешествии обучения</p>
+            <h2 className="text-4xl font-bold text-white mb-4">Почему DreamStudy?</h2>
+            <p className="text-xl text-blue-100">Всё, что вам нужно для качественной передачи знаний</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[{ icon: Video, title: 'Опытные преподаватели', desc: 'Учитесь у профессионалов индустрии с многолетним практическим опытом и проверенными методами обучения.' }, { icon: TrendingUp, title: 'Гибкое обучение', desc: 'Учитесь в своём темпе с пожизненным доступом к материалам курса и регулярными обновлениями контента.' }, { icon: Trophy, title: 'Сертификаты', desc: 'Получайте признанные сертификаты по завершению курса, чтобы продемонстрировать свои новые навыки работодателям.' }].map((item, i) => (
+            {[{ icon: Video, title: 'Удобные инструменты', desc: 'Учитесь у профессионалов индустрии с многолетним практическим опытом и проверенными методами обучения.' }, { icon: TrendingUp, title: 'Гибкое обучение', desc: 'Учитесь в своём темпе с пожизненным доступом к материалам курса и регулярными обновлениями контента.' }, { icon: Trophy, title: 'Сертификаты', desc: 'Получайте признанные сертификаты по завершению курса, чтобы продемонстрировать свои новые навыки работодателям.' }].map((item, i) => (
               <div key={i} className="bg-white/10 backdrop-blur-sm rounded-xl p-8 text-white">
                 <item.icon className="h-12 w-12 mb-4" />
                 <h3 className="text-xl font-bold mb-3">{item.title}</h3>
