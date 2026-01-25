@@ -1,330 +1,178 @@
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import {corsHeaders} from '../_shared/cors.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey, Content-Hmac',
-};
-
-interface CloudPaymentsNotification {
-  TransactionId: number;
-  Amount: number;
-  Currency: string;
-  DateTime: string;
-  CardFirstSix?: string;
-  CardLastFour?: string;
-  CardType?: string;
-  Status: string;
-  StatusCode?: number;
-  OperationType?: string;
-  InvoiceId?: string;
-  AccountId?: string;
-  Email?: string;
-  Data?: any;
-  TestMode?: boolean;
-  Token?: string;
-  Name?: string;
-  IpAddress?: string;
-  IpCountry?: string;
-  IpCity?: string;
-  IpRegion?: string;
-  IpDistrict?: string;
-  Description?: string;
-  AuthCode?: string;
-  PaymentAmount?: number;
-  PaymentCurrency?: string;
-}
-
-Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
-  }
-
+serve(async (req) => {
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
-
-    const notification: CloudPaymentsNotification = await req.json();
-
-    console.log('=== CloudPayments Webhook Received ===');
-    console.log('Timestamp:', new Date().toISOString());
-    console.log('Full notification:', JSON.stringify(notification, null, 2));
-    console.log('Transaction ID:', notification.TransactionId);
-    console.log('Invoice ID:', notification.InvoiceId);
-    console.log('Status:', notification.Status);
-    console.log('Amount:', notification.Amount);
-    console.log('Currency:', notification.Currency);
-    console.log('Data:', notification.Data);
-    console.log('Test Mode:', notification.TestMode);
-
-    const invoiceId = notification.InvoiceId;
-
-    if (!invoiceId) {
-      console.error('ERROR: No InvoiceId in notification - cannot process payment');
-      console.error('This means CloudPayments sent notification without InvoiceId');
-      console.error('Make sure you are passing invoiceId when creating payment');
-      return new Response(
-        JSON.stringify({ code: 0, message: 'No InvoiceId provided' }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+    // CORS заголовки
+    if (req.method === 'OPTIONS') {
+      return new Response('ok', { headers: corsHeaders })
     }
 
-    console.log('Searching for payment with InvoiceId:', invoiceId);
-
-    const { data: payment, error: paymentError } = await supabaseClient
-      .from('payments')
-      .select('*')
-      .eq('yookassa_payment_id', invoiceId)
-      .maybeSingle();
-
-    if (paymentError) {
-      console.error('ERROR: Database error searching for payment:', paymentError);
-      return new Response(
-        JSON.stringify({ code: 0 }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    if (!payment) {
-      console.error('ERROR: Payment not found in database for InvoiceId:', invoiceId);
-      console.error('Possible reasons:');
-      console.error('1. Payment was not created before webhook arrived');
-      console.error('2. InvoiceId mismatch between create-payment and webhook');
-      console.error('3. Payment was deleted from database');
-      console.error('Searching all payments to debug...');
-
-      const { data: allPayments } = await supabaseClient
-        .from('payments')
-        .select('yookassa_payment_id, created_at')
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      console.error('Recent payments in database:', allPayments);
-
-      return new Response(
-        JSON.stringify({ code: 0, message: 'Payment not found in database' }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    console.log('Payment found:', {
-      id: payment.id,
-      user_id: payment.user_id,
-      amount: payment.amount,
-      status: payment.status,
-      payment_type: payment.payment_type,
-      course_id: payment.course_id
-    });
-
-    let newStatus = 'pending';
-    if (notification.Status === 'Completed' || notification.Status === 'Authorized') {
-      newStatus = 'succeeded';
-      console.log('Payment succeeded!');
-    } else if (notification.Status === 'Declined' || notification.Status === 'Cancelled') {
-      newStatus = 'failed';
-      console.log('Payment failed or cancelled');
-    }
-
-    console.log('Updating payment status from', payment.status, 'to', newStatus);
-
-    const { error: updateError } = await supabaseClient
-      .from('payments')
-      .update({
-        status: newStatus,
-        metadata: {
-          ...payment.metadata,
-          cloudpayments_transaction_id: notification.TransactionId,
-          cloudpayments_status: notification.Status,
-          card_first_six: notification.CardFirstSix,
-          card_last_four: notification.CardLastFour,
-          card_type: notification.CardType,
-          data: notification.Data,
-        }
+    // Получение секретного ключа для валидации
+    const CLOUDPAYMENTS_SECRET = Deno.env.get('CLOUDPAYMENTS_SECRET')
+    if (!CLOUDPAYMENTS_SECRET) {
+      return new Response(JSON.stringify({ error: 'Missing CloudPayments secret' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
-      .eq('yookassa_payment_id', invoiceId);
-
-    if (updateError) {
-      console.error('ERROR: Failed to update payment status:', updateError);
-      return new Response(
-        JSON.stringify({ code: 13 }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
     }
 
-    console.log('Payment status updated successfully to:', newStatus);
+    // Чтение тела запроса
+    const body = await req.text()
+    
+    // Валидация подписи запроса
+    const signature = req.headers.get('Content-HMAC') || req.headers.get('X-Content-HMAC')
+    if (!signature) {
+      return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
 
-    if (newStatus === 'succeeded') {
-      console.log('=== Processing successful payment ===');
-      const metadata = payment.metadata || {};
-      let dataObj = metadata;
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
-      if (notification.Data) {
-        try {
-          if (typeof notification.Data === 'string') {
-            dataObj = JSON.parse(notification.Data);
-          } else {
-            dataObj = notification.Data;
-          }
-        } catch (e) {
-          console.error('Failed to parse Data field:', e);
-        }
+    console.log('Webhook received:', body)
+    
+    // Определение типа уведомления
+    const notificationType = req.headers.get('CloudPayments-Notification-Type')
+    
+    // Обработка уведомления об успешной оплате
+    if (notificationType === 'pay') {
+      const payload = JSON.parse(body)
+      const transactionId = payload.TransactionId
+      const accountId = payload.AccountId // email пользователя
+      const invoiceId = payload.InvoiceId // ID заказа
+      const amount = payload.Amount
+      const description = payload.Description
+      
+      // Поиск пользователя по email
+      const { data: user, error: userError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', accountId)
+        .single()
+      
+      if (userError || !user) {
+        console.error('User not found:', userError)
+        return new Response(JSON.stringify({ error: 'User not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
       }
 
-      const paymentType = payment.payment_type;
-      const userId = payment.user_id;
-      const tier = dataObj.tier || metadata.tier || 'basic';
-      const courseId = payment.course_id || dataObj.course_id;
+      // Поиск заказа для определения типа покупки
+      const { data: order, error: orderError } = await supabase
+        .from('payments')
+        .select(`
+          id,
+          course_id,
+          pricing_tier_id,
+          amount,
+          status
+        `)
+        .eq('invoice_id', invoiceId)
+        .single()
 
-      console.log('Payment type:', paymentType);
-      console.log('User ID:', userId);
-      console.log('Tier:', tier);
-      console.log('Course ID:', courseId);
+      if (orderError || !order) {
+        console.error('Order not found:', orderError)
+        return new Response(JSON.stringify({ error: 'Order not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
 
-      if (paymentType === 'subscription') {
-        console.log('--- Processing SUBSCRIPTION payment ---');
-        const endDate = new Date();
-        endDate.setMonth(endDate.getMonth() + 1);
-        console.log('Subscription end date:', endDate.toISOString());
+      // Обновление статуса платежа
+      const { error: updatePaymentError } = await supabase
+        .from('payments')
+        .update({
+          status: 'completed',
+          transaction_id: transactionId.toString(),
+          payment_data: payload,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', order.id)
 
-        const { data: existingSubscription } = await supabaseClient
-          .from('user_subscriptions')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('is_active', true)
-          .maybeSingle();
+      if (updatePaymentError) {
+        console.error('Error updating payment status:', updatePaymentError)
+        return new Response(JSON.stringify({ error: 'Failed to update payment status' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
 
-        if (existingSubscription) {
-          console.log('Found existing subscription, updating:', existingSubscription.id);
-          const { error: updateError } = await supabaseClient
-            .from('user_subscriptions')
-            .update({
-              tier: tier,
-              end_date: endDate.toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', existingSubscription.id);
-
-          if (updateError) {
-            console.error('ERROR: Failed to update subscription:', updateError);
-          } else {
-            console.log('SUCCESS: Subscription updated');
-          }
-        } else {
-          console.log('No existing subscription, creating new one');
-          const { data: newSubscription, error: subError } = await supabaseClient
-            .from('user_subscriptions')
-            .insert({
-              user_id: userId,
-              tier: tier,
-              start_date: new Date().toISOString(),
-              end_date: endDate.toISOString(),
-              is_active: true,
-            })
-            .select()
-            .single();
-
-          if (subError) {
-            console.error('ERROR: Failed to create subscription:', subError);
-          } else {
-            console.log('SUCCESS: Subscription created:', newSubscription?.id);
-            if (newSubscription) {
-              const { error: linkError } = await supabaseClient
-                .from('payments')
-                .update({ subscription_id: newSubscription.id })
-                .eq('id', payment.id);
-
-              if (linkError) {
-                console.error('ERROR: Failed to link payment to subscription:', linkError);
-              } else {
-                console.log('Payment linked to subscription');
-              }
-            }
-          }
-        }
-
-        console.log('Updating user profile with subscription tier');
-        const { error: profileError } = await supabaseClient
-          .from('profiles')
-          .update({
-            subscription_tier: tier,
-            subscription_expires_at: endDate.toISOString(),
+      // Если куплен курс
+      if (order.course_id) {
+        const { error: purchaseError } = await supabase
+          .from('course_purchases')
+          .upsert({
+            user_id: user.id,
+            course_id: order.course_id,
+            payment_id: order.id,
+            purchased_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id,course_id'
           })
-          .eq('id', userId);
-
-        if (profileError) {
-          console.error('ERROR: Failed to update profile:', profileError);
-        } else {
-          console.log('SUCCESS: Profile updated with subscription tier');
-        }
-      } else if (paymentType === 'course' && courseId) {
-        console.log('--- Processing COURSE payment ---');
-        console.log('Creating course purchase for course:', courseId);
-
-        const { error: purchaseError } = await supabaseClient.from('course_purchases').insert({
-          user_id: userId,
-          course_id: courseId,
-          price_paid: parseFloat(payment.amount),
-          purchased_at: new Date().toISOString(),
-        });
 
         if (purchaseError) {
-          console.error('ERROR: Failed to create course purchase:', purchaseError);
-        } else {
-          console.log('SUCCESS: Course purchase created');
-          const { error: linkError } = await supabaseClient
-            .from('payments')
-            .update({ course_id: courseId })
-            .eq('id', payment.id);
-
-          if (linkError) {
-            console.error('ERROR: Failed to link payment to course:', linkError);
-          } else {
-            console.log('Payment linked to course');
-          }
+          console.error('Error recording course purchase:', purchaseError)
+          return new Response(JSON.stringify({ error: 'Failed to record course purchase' }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
         }
-      } else {
-        console.log('WARNING: Unknown payment type or missing course_id');
+      }
+      
+      // Если оформлена подписка
+      if (order.pricing_tier_id) {
+        // Рассчитываем дату окончания подписки (1 месяц)
+        const now = new Date()
+        const endDate = new Date(now)
+        endDate.setMonth(endDate.getMonth() + 1)
+
+        const { error: subscriptionError } = await supabase
+          .from('user_subscriptions')
+          .upsert({
+            user_id: user.id,
+            pricing_tier_id: order.pricing_tier_id,
+            payment_id: order.id,
+            starts_at: now.toISOString(),
+            ends_at: endDate.toISOString(),
+            status: 'active'
+          }, {
+            onConflict: 'user_id,pricing_tier_id'
+          })
+
+        if (subscriptionError) {
+          console.error('Error recording subscription:', subscriptionError)
+          return new Response(JSON.stringify({ error: 'Failed to record subscription' }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
       }
 
-      console.log('=== Payment processing completed successfully ===');
+      console.log('Payment processed successfully for user:', accountId)
+      
+      // Успешный ответ для CloudPayments
+      return new Response(JSON.stringify({ code: 0 }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
     }
-
-    return new Response(
-      JSON.stringify({ code: 0 }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    
+    console.log('Unhandled notification type:', notificationType)
+    return new Response(JSON.stringify({ code: 0, message: 'Notification type not handled' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+    
   } catch (error) {
-    console.error('Error processing webhook:', error);
-    return new Response(
-      JSON.stringify({ code: 13 }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    console.error('Error processing webhook:', error)
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
   }
-});
+})
