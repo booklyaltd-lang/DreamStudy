@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Auth</title>
+</head>
+<body>
+  <h1>Тест регистрации и логина</h1>
+
+  <h2>Регистрация</h2>
+  <input id="regEmail" placeholder="Email" />
+  <input id="regPass" type="password" placeholder="Password" />
+  <button onclick="register()">Register</button>
+  <pre id="regResult"></pre>
+
+  <h2>Логин</h2>
+  <input id="loginEmail" placeholder="Email" />
+  <input id="loginPass" type="password" placeholder="Password" />
+  <button onclick="login()">Login</button>
+  <pre id="loginResult"></pre>
+
+  <script>
+    function register() {
+      const email = document.getElementById('regEmail').value;
+      const password = document.getElementById('regPass').value;
+
+      fetch('http://localhost:3001/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('regResult').textContent = JSON.stringify(data, null, 2);
+      })
+      .catch(err => {
+        document.getElementById('regResult').textContent = err;
+      });
+    }
+
+    function login() {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPass').value;
+
+      fetch('http://localhost:3001/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('loginResult').textContent = JSON.stringify(data, null, 2);
+      })
+      .catch(err => {
+        document.getElementById('loginResult').textContent = err;
+      });
+    }
+  </script>
+</body>
+</html>
